@@ -6,6 +6,7 @@ jobs:
   linux:
     runs-on: ubuntu-20.04
     strategy:
+      fail-fast: false
       matrix:
         config: [debug, release]
         platform: [x64]
