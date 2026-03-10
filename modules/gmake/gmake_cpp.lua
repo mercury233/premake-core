@@ -687,6 +687,26 @@
 			targets = targets .. ' $(RESOURCES)'
 		end
 
+		if cfg.kind == p.STATICLIB and cfg.architecture ~= p.UNIVERSAL then
+			_p('$(TARGET): %s | $(TARGETDIR)', targets)
+			_p('\t$(PRELINKCMDS)')
+			_p('\t@echo Archiving %s', cfg.project.name)
+			_p('ifeq (posix,$(SHELLTYPE))')
+			_p('\t$(SILENT) rm -f "$@"')
+			for _, obj in ipairs(cfg._gmake.filesets.OBJECTS or {}) do
+				_p('\t$(SILENT) $(AR) -rcs "$@" %s', obj)
+			end
+			_p('else')
+			_p('\t$(SILENT) if exist $(subst /,\\\\,$@) del $(subst /,\\\\,$@)')
+			for _, obj in ipairs(cfg._gmake.filesets.OBJECTS or {}) do
+				_p('\t$(SILENT) $(AR) -rcs "$@" %s', obj)
+			end
+			_p('endif')
+			_p('\t$(POSTBUILDCMDS)')
+			_p('')
+			return
+		end
+
 		_p('$(TARGET): %s | $(TARGETDIR)', targets)
 		_p('\t$(PRELINKCMDS)')
 		_p('\t@echo Linking %s', cfg.project.name)
@@ -729,9 +749,15 @@
 		_p('$(RESPONSE): $(OBJECTS) | $(OBJDIR)')
 		_p('\t@echo Generating objects response file')
 		_p('ifeq (posix,$(SHELLTYPE))')
-		_p('\t$(SILENT) printf \'%%s\\n\' $(OBJECTS) > $(RESPONSE)')
+		_p('\t$(SILENT) rm -f $(RESPONSE)')
+		for _, obj in ipairs(cfg._gmake.filesets.OBJECTS or {}) do
+			_p('\t$(SILENT) printf \'%%s\\n\' %s >> $(RESPONSE)', obj)
+		end
 		_p('else')
-		_p('\t$(SILENT) echo $(OBJECTS) > $(subst /,\\\\,$(RESPONSE))')
+		_p('\t$(SILENT) if exist $(subst /,\\\\,$(RESPONSE)) del $(subst /,\\\\,$(RESPONSE))')
+		for _, obj in ipairs(cfg._gmake.filesets.OBJECTS or {}) do
+			_p('\t$(SILENT) echo %s>>$(subst /,\\\\,$(RESPONSE))', obj)
+		end
 		_p('endif')
 		_p('')
 	end
