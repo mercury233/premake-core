@@ -40,7 +40,7 @@
 		prepare { cpp.ldFlags, cpp.linkCmd }
 		test.capture [[
 ALL_LDFLAGS += $(LDFLAGS) -shared -Wl,-soname=libMyProject.so -s
-LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
+LINKCMD = $(CXX) -o "$@" @$(RESPONSE) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
 		]]
 	end
 
@@ -50,7 +50,7 @@ LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
 		prepare { cpp.ldFlags, cpp.linkCmd }
 		test.capture [[
 ALL_LDFLAGS += $(LDFLAGS) -dynamiclib -Wl,-install_name,@rpath/libMyProject.dylib -Wl,-x
-LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
+LINKCMD = $(CXX) -o "$@" @$(RESPONSE) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
 		]]
 	end
 
@@ -64,7 +64,7 @@ LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
 		prepare { cpp.ldFlags, cpp.linkCmd }
 		test.capture [[
 ALL_LDFLAGS += $(LDFLAGS) -shared -Wl,-soname=libMyProject.so -s
-LINKCMD = $(CC) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
+LINKCMD = $(CC) -o "$@" @$(RESPONSE) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
 		]]
 	end
 
@@ -269,5 +269,71 @@ LIBS += -lSomeLib
 		prepare { cpp.libs }
 		test.capture [[
 LIBS += -lSomeLib-1.1
+		]]
+	end
+
+
+--
+-- Response file variable should be defined for executables and shared libs.
+--
+
+	function suite.responseFile_onConsoleApp()
+		kind "ConsoleApp"
+		prepare { cpp.responseFile }
+		test.capture [[
+RESPONSE = $(OBJDIR)/objects.rsp
+		]]
+	end
+
+	function suite.responseFile_onSharedLib()
+		kind "SharedLib"
+		prepare { cpp.responseFile }
+		test.capture [[
+RESPONSE = $(OBJDIR)/objects.rsp
+		]]
+	end
+
+	function suite.responseFile_notOnStaticLib()
+		kind "StaticLib"
+		prepare { cpp.responseFile }
+		test.capture [[
+		]]
+	end
+
+	function suite.responseFile_notOnUtility()
+		kind "Utility"
+		prepare { cpp.responseFile }
+		test.capture [[
+		]]
+	end
+
+
+--
+-- Response file rules should be generated for executables and shared libs.
+--
+
+	function suite.responseRules_onConsoleApp()
+		kind "ConsoleApp"
+		local cfg = test.getconfig(prj, "Debug")
+		local toolset = p.tools.gcc
+		cpp.responseRules(cfg, toolset)
+		test.capture [[
+$(RESPONSE): $(OBJECTS) | $(OBJDIR)
+	@echo Generating objects response file
+ifeq (posix,$(SHELLTYPE))
+	$(SILENT) printf '%s\n' $(OBJECTS) > $(RESPONSE)
+else
+	$(SILENT) echo $(OBJECTS) > $(subst /,\\,$(RESPONSE))
+endif
+
+		]]
+	end
+
+	function suite.responseRules_notOnStaticLib()
+		kind "StaticLib"
+		local cfg = test.getconfig(prj, "Debug")
+		local toolset = p.tools.gcc
+		cpp.responseRules(cfg, toolset)
+		test.capture [[
 		]]
 	end

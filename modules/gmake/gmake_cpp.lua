@@ -327,6 +327,7 @@
 			cpp.libs,
 			cpp.ldDeps,
 			cpp.ldFlags,
+			cpp.responseFile,
 			cpp.linkCmd,
 			cpp.bindirs,
 			cpp.exepaths,
@@ -447,6 +448,13 @@
 	end
 
 
+	function cpp.responseFile(cfg, toolset)
+		if cfg.kind ~= p.STATICLIB and cfg.kind ~= p.UTILITY then
+			p.outln('RESPONSE = $(OBJDIR)/objects.rsp')
+		end
+	end
+
+
 	function cpp.linkCmd(cfg, toolset)
 		if cfg.kind == p.STATICLIB then
 			if cfg.architecture == p.UNIVERSAL then
@@ -462,9 +470,10 @@
 			--   but had trouble linking to certain static libs; $(OBJECTS) moved up
 			-- $(LDFLAGS) moved to end (http://sourceforge.net/p/premake/patches/107/)
 			-- $(LIBS) moved to end (http://sourceforge.net/p/premake/bugs/279/)
+			-- $(OBJECTS) replaced by @$(RESPONSE) to avoid command-line length limits
 
 			local cc = iif(p.languages.isc(cfg.language), "CC", "CXX")
-			p.outln('LINKCMD = $(' .. cc .. ') -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)')
+			p.outln('LINKCMD = $(' .. cc .. ') -o "$@" @$(RESPONSE) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)')
 		end
 	end
 
@@ -630,6 +639,7 @@
 			gmake.preBuildRules,
 			cpp.customDeps,
 			cpp.pchRules,
+			cpp.responseRules,
 		}
 	end
 
@@ -666,7 +676,13 @@
 			end
 		end
 
-		targets = targets .. '$(OBJECTS) $(LDDEPS)'
+		-- Use response file as dependency for executables/shared libs to avoid command-line length limits
+		if cfg.kind == p.STATICLIB or cfg.kind == p.UTILITY then
+			targets = targets .. '$(OBJECTS) $(LDDEPS)'
+		else
+			targets = targets .. '$(RESPONSE) $(LDDEPS)'
+		end
+
 		if cfg._gmake.filesets['RESOURCES'] then
 			targets = targets .. ' $(RESOURCES)'
 		end
@@ -700,6 +716,22 @@
 		_p('\t$(SILENT) if exist $(subst /,\\\\,$(TARGET)) del $(subst /,\\\\,$(TARGET))')
 		_p('\t$(SILENT) $(foreach f,$(subst /,\\\\,$(GENERATED)),if exist $(f) del /s /q $(f) >nul &)')
 		_p('\t$(SILENT) if exist $(subst /,\\\\,$(OBJDIR)) rmdir /s /q $(subst /,\\\\,$(OBJDIR))')
+		_p('endif')
+		_p('')
+	end
+
+
+	function cpp.responseRules(cfg, toolset)
+		if cfg.kind == p.STATICLIB or cfg.kind == p.UTILITY then
+			return
+		end
+
+		_p('$(RESPONSE): $(OBJECTS) | $(OBJDIR)')
+		_p('\t@echo Generating objects response file')
+		_p('ifeq (posix,$(SHELLTYPE))')
+		_p('\t$(SILENT) printf \'%%s\\n\' $(OBJECTS) > $(RESPONSE)')
+		_p('else')
+		_p('\t$(SILENT) echo $(OBJECTS) > $(subst /,\\\\,$(RESPONSE))')
 		_p('endif')
 		_p('')
 	end
