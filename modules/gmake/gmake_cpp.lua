@@ -449,7 +449,7 @@
 
 
 	function cpp.responseFile(cfg, toolset)
-		if cfg.kind ~= p.UTILITY then
+		if cfg.kind ~= p.STATICLIB and cfg.kind ~= p.UTILITY then
 			p.outln('RESPONSE = $(OBJDIR)/objects.rsp')
 		end
 	end
@@ -460,7 +460,7 @@
 			if cfg.architecture == p.UNIVERSAL then
 				p.outln('LINKCMD = libtool -o "$@" $(OBJECTS)')
 			else
-				p.outln('LINKCMD = $(AR) -rcs "$@" @$(RESPONSE)')
+				p.outln('LINKCMD = $(AR) -rcs "$@" $(OBJECTS)')
 			end
 		elseif cfg.kind == p.UTILITY then
 			-- Empty LINKCMD for Utility (only custom build rules)
@@ -676,8 +676,8 @@
 			end
 		end
 
-		-- Use response file as dependency to avoid command-line length limits
-		if cfg.kind == p.UTILITY then
+		-- Use response file as dependency for executables/shared libs to avoid command-line length limits
+		if cfg.kind == p.STATICLIB or cfg.kind == p.UTILITY then
 			targets = targets .. '$(OBJECTS) $(LDDEPS)'
 		else
 			targets = targets .. '$(RESPONSE) $(LDDEPS)'
@@ -693,10 +693,14 @@
 			_p('\t@echo Archiving %s', cfg.project.name)
 			_p('ifeq (posix,$(SHELLTYPE))')
 			_p('\t$(SILENT) rm -f "$@"')
-			_p('\t$(SILENT) $(LINKCMD)')
+			for _, obj in ipairs(cfg._gmake.filesets.OBJECTS or {}) do
+				_p('\t$(SILENT) $(AR) -rcs "$@" %s', obj)
+			end
 			_p('else')
 			_p('\t$(SILENT) if exist $(subst /,\\\\,$@) del $(subst /,\\\\,$@)')
-			_p('\t$(SILENT) $(LINKCMD)')
+			for _, obj in ipairs(cfg._gmake.filesets.OBJECTS or {}) do
+				_p('\t$(SILENT) $(AR) -rcs "$@" %s', obj)
+			end
 			_p('endif')
 			_p('\t$(POSTBUILDCMDS)')
 			_p('')
@@ -738,7 +742,7 @@
 
 
 	function cpp.responseRules(cfg, toolset)
-		if cfg.kind == p.UTILITY then
+		if cfg.kind == p.STATICLIB or cfg.kind == p.UTILITY then
 			return
 		end
 
