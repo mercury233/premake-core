@@ -4,7 +4,7 @@ Specifies the default build platform for a workspace.
 defaultplatform ("platform_name")
 ```
 
-If `platform_name` has not been defined using [`platforms`](platforms.md) the default platform will not change from the generic one i.e. the first one passed to [`platforms`](platforms.md).
+If `platform_name` has not been defined using [`platforms`](platforms.md) the default platform will not change from the first one when sorted alphabetically by platform name.
 
 ### Parameters ###
 
@@ -45,4 +45,5 @@ workspace "MyWorkspace"
 ```
 ### See Also ###
 
+* [defaultconfiguration](defaultconfiguration.md)
 * [platforms](platforms.md)

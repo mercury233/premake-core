@@ -192,6 +192,50 @@
 
 
 ---
+-- Return the default configuration for a workspace or project.
+--
+-- @param target
+--    The workspace or project object to query.
+-- @return
+--    The selected configuration, or nil if none are available.
+---
+
+	function config.getdefault(target)
+		local eachconfig = iif(target.project, project.eachconfig, p.workspace.eachconfig)
+		local defaultConfiguration = target.defaultconfiguration
+		local defaultPlatform = target.defaultplatform
+		local first
+		local bestConfiguration
+		local bestPlatform
+
+		if type(defaultConfiguration) == "string" then
+			defaultConfiguration = defaultConfiguration:lower()
+		end
+
+		if type(defaultPlatform) == "string" then
+			defaultPlatform = defaultPlatform:lower()
+		end
+
+		for cfg in eachconfig(target) do
+			first = first or cfg
+
+			local matchesConfiguration = defaultConfiguration and cfg.buildcfg and cfg.buildcfg:lower() == defaultConfiguration
+			local matchesPlatform = defaultPlatform and cfg.platform and cfg.platform:lower() == defaultPlatform
+
+			if matchesConfiguration and matchesPlatform then
+				return cfg
+			elseif not bestConfiguration and matchesConfiguration then
+				bestConfiguration = cfg
+			elseif not bestPlatform and matchesPlatform then
+				bestPlatform = cfg
+			end
+		end
+
+		return bestConfiguration or bestPlatform or first
+	end
+
+
+---
 -- Retrieve linking information for a specific configuration. That is,
 -- the path information that is required to link against the library
 -- built by this configuration.

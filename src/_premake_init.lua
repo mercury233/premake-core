@@ -239,6 +239,12 @@
 	}
 
 	api.register {
+		name = "defaultconfiguration",
+		scope = "project",
+		kind = "string",
+	}
+
+	api.register {
 		name = "defines",
 		scope = "config",
 		kind = "list:string",
@@ -1347,6 +1353,7 @@
 	api.alias("buildmessage", "buildMessage")
 	api.alias("buildoutputs", "buildOutputs")
 	api.alias("editandcontinue", "editAndContinue")
+	api.alias("defaultconfiguration", "defaultConfiguration")
 	api.alias("fileextension", "fileExtension")
 	api.alias("propertydefinition", "propertyDefinition")
 	api.alias("removefiles", "excludes")

@@ -8,6 +8,17 @@
 	local suite = test.declare("vstudio_sln2005_platforms")
 	local sln2005 = p.vstudio.sln2005
 
+	local function assertCapturedContainsInOrder(...)
+		local actual = p.captured()
+		local position = 1
+		for i = 1, select("#", ...) do
+			local fragment = select(i, ...)
+			local found = actual:find(fragment, position, true)
+			test.isnotnil(found)
+			position = found + #fragment
+		end
+	end
+
 
 --
 -- Setup
@@ -824,6 +835,78 @@ GlobalSection(SolutionConfigurationPlatforms) = preSolution
 	Release|Win32 = Release|Win32
 EndGlobalSection
 		]]
+	end
+
+
+---
+-- Check that when a default configuration is specified it is written first so
+-- that Visual Studio picks it up as default.
+---
+
+	function suite.onDefaultConfiguration()
+		defaultConfiguration "Release"
+		project "MyProject"
+		prepare()
+		assertCapturedContainsInOrder(
+			"Release|Win32 = Release|Win32",
+			"Debug|Win32 = Debug|Win32"
+		)
+	end
+
+
+---
+-- Check that default configuration and default platform select the exact pair.
+---
+
+	function suite.onDefaultConfigurationAndDefaultPlatform()
+		platforms { "x86", "x86_64" }
+		defaultConfiguration "Release"
+		defaultplatform "x86_64"
+		project "MyProject"
+		prepare()
+		assertCapturedContainsInOrder(
+			"Release|x64 = Release|x64",
+			"Debug|Win32 = Debug|Win32",
+			"Debug|x64 = Debug|x64",
+			"Release|Win32 = Release|Win32"
+		)
+	end
+
+
+---
+-- Check that invalid defaultConfiguration falls back gracefully.
+-- When defaultConfiguration is invalid but valid configs exist, 
+-- the first config becomes the default in its own block.
+---
+
+	function suite.onInvalidConfiguration()
+		defaultConfiguration "NonExistent"
+		project "MyProject"
+		prepare()
+		assertCapturedContainsInOrder(
+			"Debug|Win32 = Debug|Win32",
+			"Release|Win32 = Release|Win32"
+		)
+	end
+
+
+---
+-- Check that invalid defaultplatform falls back gracefully.
+-- When defaultplatform is invalid, it creates an empty default block,
+-- then outputs all configs in the second block.
+---
+
+	function suite.onInvalidPlatform()
+		platforms { "x86", "x86_64" }
+		defaultplatform "ARM"
+		project "MyProject"
+		prepare()
+		local actual = p.captured()
+		test.isnil(actual:find("ARM", 1, true))
+		test.isnotnil(actual:find("Debug|Win32 = Debug|Win32", 1, true))
+		test.isnotnil(actual:find("Debug|x64 = Debug|x64", 1, true))
+		test.isnotnil(actual:find("Release|Win32 = Release|Win32", 1, true))
+		test.isnotnil(actual:find("Release|x64 = Release|x64", 1, true))
 	end
 
 ---
