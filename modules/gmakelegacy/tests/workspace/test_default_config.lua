@@ -88,11 +88,11 @@ endif
 
 
 --
--- Verify handling of defaultConfiguration
+-- Verify handling of defaultconfiguration
 --
 
 	function suite.defaultsToSpecifiedConfiguration()
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		prepare()
 		test.capture [[
 ifndef config
@@ -103,12 +103,12 @@ endif
 
 
 --
--- Verify handling of defaultConfiguration and defaultplatform together
+-- Verify handling of defaultconfiguration and defaultplatform together
 --
 
 	function suite.defaultsToSpecifiedConfigurationAndPlatform()
 		platforms { "Win32", "Win64" }
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		defaultplatform "Win64"
 		prepare()
 		test.capture [[
@@ -120,11 +120,11 @@ endif
 
 
 --
--- Verify that invalid defaultConfiguration falls back to first
+-- Verify that invalid defaultconfiguration falls back to first
 --
 
 	function suite.fallsBackToFirstConfig_onInvalidConfiguration()
-		defaultConfiguration "NonExistent"
+		defaultconfiguration "NonExistent"
 		prepare()
 		test.capture [[
 ifndef config
@@ -151,11 +151,11 @@ endif
 
 
 --
--- Verify case-insensitive matching for defaultConfiguration
+-- Verify case-insensitive matching for defaultconfiguration
 --
 
 	function suite.caseInsensitive_forConfiguration()
-		defaultConfiguration "RELEASE"
+		defaultconfiguration "RELEASE"
 		prepare()
 		test.capture [[
 ifndef config
@@ -182,12 +182,12 @@ endif
 
 
 --
--- Verify priority: valid defaultplatform with invalid defaultConfiguration
+-- Verify priority: valid defaultplatform with invalid defaultconfiguration
 --
 
 	function suite.prefersValidPlatform_whenConfigInvalid()
 		platforms { "Win32", "Win64" }
-		defaultConfiguration "NonExistent"
+		defaultconfiguration "NonExistent"
 		defaultplatform "Win64"
 		prepare()
 		test.capture [[

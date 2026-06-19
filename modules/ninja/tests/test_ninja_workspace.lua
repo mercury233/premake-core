@@ -242,14 +242,14 @@ default TestProject_Debug
 
 
 --
--- Check default target respects defaultConfiguration.
+-- Check default target respects defaultconfiguration.
 --
 
 	function suite.defaultTarget_onDefaultConfiguration()
 		p.action.set("ninja")
 		local wks2 = workspace "TestWorkspace6"
 		configurations { "Debug", "Release" }
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 
 		project "TestProject"
 		kind "ConsoleApp"
@@ -267,7 +267,7 @@ default TestProject_Release
 
 
 --
--- Check default target respects defaultConfiguration and defaultplatform together.
+-- Check default target respects defaultconfiguration and defaultplatform together.
 --
 
 	function suite.defaultTarget_onDefaultConfigurationAndDefaultPlatform()
@@ -275,7 +275,7 @@ default TestProject_Release
 		local wks2 = workspace "TestWorkspace5"
 		configurations { "Debug", "Release" }
 		platforms { "x86", "x64" }
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		defaultplatform "x64"
 
 		project "TestProject"
@@ -294,14 +294,14 @@ default TestProject_Release_x64
 
 
 --
--- Check default target with invalid defaultConfiguration falls back.
+-- Check default target with invalid defaultconfiguration falls back.
 --
 
 	function suite.defaultTarget_onInvalidConfiguration()
 		p.action.set("ninja")
 		local wks2 = workspace "TestWorkspace8"
 		configurations { "Debug", "Release" }
-		defaultConfiguration "NonExistent"
+		defaultconfiguration "NonExistent"
 
 		project "TestProject"
 		kind "ConsoleApp"

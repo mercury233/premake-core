@@ -4871,7 +4871,7 @@
 
 
 	function suite.XCBuildConfigurationList_OnDefaultConfiguration()
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		prepare()
 		xcode.XCBuildConfigurationList(tr)
 		test.capture [[
@@ -4902,7 +4902,7 @@
 	function suite.XCBuildConfigurationList_OnDefaultConfigurationAndPlatform()
 		workspace("MyWorkspace")
 		platforms { "x86", "x64" }
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		defaultplatform "x64"
 		prepare()
 		xcode.XCBuildConfigurationList(tr)
@@ -4936,7 +4936,7 @@
 
 
 	function suite.XCBuildConfigurationList_OnInvalidConfiguration()
-		defaultConfiguration "NonExistent"
+		defaultconfiguration "NonExistent"
 		prepare()
 		xcode.XCBuildConfigurationList(tr)
 		test.capture [[

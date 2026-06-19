@@ -844,7 +844,7 @@ EndGlobalSection
 ---
 
 	function suite.onDefaultConfiguration()
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		project "MyProject"
 		prepare()
 		assertCapturedContainsInOrder(
@@ -860,7 +860,7 @@ EndGlobalSection
 
 	function suite.onDefaultConfigurationAndDefaultPlatform()
 		platforms { "x86", "x86_64" }
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		defaultplatform "x86_64"
 		project "MyProject"
 		prepare()
@@ -874,13 +874,13 @@ EndGlobalSection
 
 
 ---
--- Check that invalid defaultConfiguration falls back gracefully.
--- When defaultConfiguration is invalid but valid configs exist, 
+-- Check that invalid defaultconfiguration falls back gracefully.
+-- When defaultconfiguration is invalid but valid configs exist, 
 -- the first config becomes the default in its own block.
 ---
 
 	function suite.onInvalidConfiguration()
-		defaultConfiguration "NonExistent"
+		defaultconfiguration "NonExistent"
 		project "MyProject"
 		prepare()
 		assertCapturedContainsInOrder(

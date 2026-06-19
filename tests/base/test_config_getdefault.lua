@@ -40,11 +40,11 @@
 
 
 --
--- Verify matching defaultConfiguration only
+-- Verify matching defaultconfiguration only
 --
 
 	function suite.matchesDefaultConfiguration_whenSpecified()
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
 		assertDefault(cfg, "Release", nil)
@@ -65,12 +65,12 @@
 
 
 --
--- Verify matching both defaultConfiguration and defaultplatform
+-- Verify matching both defaultconfiguration and defaultplatform
 -- Priority: both match > configuration match > platform match > first
 
 	function suite.prefersBothMatching_overPartial()
 		platforms { "x86", "x64" }
-		defaultConfiguration "Profile"
+		defaultconfiguration "Profile"
 		defaultplatform "x64"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
@@ -79,11 +79,11 @@
 
 
 --
--- Verify that invalid defaultConfiguration falls back to first
+-- Verify that invalid defaultconfiguration falls back to first
 --
 
 	function suite.fallsBackToFirst_onInvalidConfiguration()
-		defaultConfiguration "NonExistent"
+		defaultconfiguration "NonExistent"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
 		assertDefault(cfg, "Debug", nil)
@@ -104,11 +104,11 @@
 
 
 --
--- Verify case-insensitivity of defaultConfiguration matching
+-- Verify case-insensitivity of defaultconfiguration matching
 --
 
 	function suite.caseInsensitive_forConfiguration()
-		defaultConfiguration "RELEASE"
+		defaultconfiguration "RELEASE"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
 		assertDefault(cfg, "Release", nil)
@@ -129,13 +129,13 @@
 
 
 --
--- Verify priority: when both defaultConfiguration is invalid but defaultplatform is valid,
+-- Verify priority: when both defaultconfiguration is invalid but defaultplatform is valid,
 -- return the defaultplatform match
 --
 
 	function suite.prefersValidPlatform_whenConfigInvalid()
 		platforms { "x86", "x64" }
-		defaultConfiguration "NonExistent"
+		defaultconfiguration "NonExistent"
 		defaultplatform "x64"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
@@ -144,13 +144,13 @@
 
 
 --
--- Verify priority: when defaultConfiguration is valid but defaultplatform is invalid,
--- return the defaultConfiguration match
+-- Verify priority: when defaultconfiguration is valid but defaultplatform is invalid,
+-- return the defaultconfiguration match
 --
 
 	function suite.prefersValidConfiguration_whenPlatformInvalid()
 		platforms { "x86", "x64" }
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		defaultplatform "ARM"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
@@ -165,7 +165,7 @@
 	function suite.selectsCorrectConfig_withMany()
 		configurations { "Debug", "Release", "Profile", "MinSize", "CustomDebug" }
 		platforms { "x86", "x64", "ARM" }
-		defaultConfiguration "Profile"
+		defaultconfiguration "Profile"
 		defaultplatform "ARM"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
@@ -188,13 +188,13 @@
 
 
 --
--- Verify workspace level defaultConfiguration.
+-- Verify workspace level defaultconfiguration.
 --
 
 	function suite.matchesDefaultConfiguration_onWorkspace()
 		local wks2 = workspace("WorkspaceForDefaultConfigurationTest")
 		configurations { "Release", "Debug", "Profile" }
-		defaultConfiguration "Release"
+		defaultconfiguration "Release"
 		wks2 = test.getWorkspace(wks2)
 		local cfg = p.config.getdefault(wks2)
 		assertDefault(cfg, "Release", nil)

@@ -1354,6 +1354,7 @@
 	api.alias("buildoutputs", "buildOutputs")
 	api.alias("editandcontinue", "editAndContinue")
 	api.alias("defaultconfiguration", "defaultConfiguration")
+	api.alias("defaultplatform", "defaultPlatform")
 	api.alias("fileextension", "fileExtension")
 	api.alias("propertydefinition", "propertyDefinition")
 	api.alias("removefiles", "excludes")
