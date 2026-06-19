@@ -21,17 +21,18 @@
 
 	function suite.setup()
 		wks = workspace("MyWorkspace")
-		configurations { "Debug", "Release", "Profile" }
+		configurations { "Release", "Debug", "Profile" }
 		prj = project("MyProject")
 		kind "ConsoleApp"
 	end
 
 
 --
--- Verify the default behavior: returns first config alphabetically
+-- Verify project default behavior: returns first project configuration in
+-- alphabetic order.
 --
 
-	function suite.returnsFirstAlphabetically_onNoDefaults()
+	function suite.returnsFirstAlphabetically_onProjectNoDefaults()
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
 		assertDefault(cfg, "Debug", nil)
@@ -98,7 +99,7 @@
 		defaultplatform "ARM"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
-		assertDefault(cfg, "Debug", "x86")
+		assertDefault(cfg, "Debug", "x64")
 	end
 
 
@@ -153,7 +154,7 @@
 		defaultplatform "ARM"
 		prj = test.getproject(wks, 1)
 		local cfg = p.config.getdefault(prj)
-		assertDefault(cfg, "Release", "x86")
+		assertDefault(cfg, "Release", "x64")
 	end
 
 
@@ -173,12 +174,26 @@
 
 
 --
--- Verify workspace level default
+-- Verify workspace default behavior: returns first workspace configuration in
+-- alphabetic order.
 --
 
-	function suite.worksAtWorkspaceLevel()
+	function suite.returnsFirstAlphabetically_onWorkspaceNoDefaults()
 		local wks2 = workspace("WorkspaceForTest")
-		configurations { "Debug", "Release" }
+		configurations { "Release", "Debug", "Profile" }
+		wks2 = test.getWorkspace(wks2)
+		local cfg = p.config.getdefault(wks2)
+		assertDefault(cfg, "Debug", nil)
+	end
+
+
+--
+-- Verify workspace level defaultConfiguration.
+--
+
+	function suite.matchesDefaultConfiguration_onWorkspace()
+		local wks2 = workspace("WorkspaceForDefaultConfigurationTest")
+		configurations { "Release", "Debug", "Profile" }
 		defaultConfiguration "Release"
 		wks2 = test.getWorkspace(wks2)
 		local cfg = p.config.getdefault(wks2)

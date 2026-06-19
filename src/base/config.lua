@@ -204,6 +204,7 @@
 		local eachconfig = iif(target.project, project.eachconfig, p.workspace.eachconfig)
 		local defaultConfiguration = target.defaultconfiguration
 		local defaultPlatform = target.defaultplatform
+		local configs = {}
 		local first
 		local bestConfiguration
 		local bestPlatform
@@ -217,6 +218,13 @@
 		end
 
 		for cfg in eachconfig(target) do
+			table.insert(configs, cfg)
+		end
+
+		-- Match workspace configuration ordering regardless of target type.
+		table.sort(configs, function(a, b) return a.name < b.name end)
+
+		for _, cfg in ipairs(configs) do
 			first = first or cfg
 
 			local matchesConfiguration = defaultConfiguration and cfg.buildcfg and cfg.buildcfg:lower() == defaultConfiguration
