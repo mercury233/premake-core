@@ -1,5 +1,5 @@
 --
--- tests/actions/gmake/test_gmake_default_config.lua
+-- modules/gmake/tests/test_gmake_default_config.lua
 -- Validate generation of default configuration block for makefiles.
 --
 

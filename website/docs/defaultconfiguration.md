@@ -1,7 +1,7 @@
 Specifies the default build configuration for a workspace.
 
 ```lua
-defaultConfiguration ("configuration_name")
+defaultconfiguration ("configuration_name")
 ```
 
 If `configuration_name` has not been defined using [`configurations`](configurations.md), the default configuration will not change from the first one when sorted alphabetically by configuration name.
@@ -23,7 +23,7 @@ Premake 5.0.0 or later.
 ```lua
 workspace "MyWorkspace"
   configurations { "Debug", "Release" }
-  defaultConfiguration "Release"
+  defaultconfiguration "Release"
 ```
 
 When combined with [`defaultplatform`](defaultplatform.md), Premake will prefer the configuration/platform pair that matches both settings.
@@ -32,7 +32,7 @@ When combined with [`defaultplatform`](defaultplatform.md), Premake will prefer 
 workspace "MyWorkspace"
   configurations { "Debug", "Release" }
   platforms { "x86", "x64" }
-  defaultConfiguration "Release"
+  defaultconfiguration "Release"
   defaultplatform "x64"
 ```
 
