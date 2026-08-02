@@ -17,6 +17,13 @@
 		return content
 	end
 
+	local function real_writefile(filepath, content)
+		local f = real_io_open(filepath, "wb")
+		test.isnotnil(f)
+		f:write(content)
+		f:close()
+	end
+
 	function suite.setup()
 		cwd = os.getcwd()
 		os.chdir(_TESTS_DIR)
@@ -182,17 +189,32 @@
 		test.isfalse(os.islink("folder/subfolder2"))
 	end
 
+	-- BSD CI mounts the workspace through SSHFS, so keep topology tests on local storage.
 	function suite.linkdir_resolvesSymlinkedDestinationParent()
 		if os.ishost("windows") then
 			return
 		end
 
-		os.execute("ln -s folder/subfolder folder-linkdir-parent")
-		test.istrue(os.islink("folder-linkdir-parent"))
-		test.istrue(os.linkdir("folder/subfolder/include", "folder-linkdir-parent/include2"))
-		test.isequal(real_readfile("folder/subfolder/include/test.h"), real_readfile("folder-linkdir-parent/include2/test.h"))
-		test.istrue(os.rmdir("folder-linkdir-parent/include2"))
-		test.istrue(os.rmdir("folder-linkdir-parent"))
+		local root = os.tmpname()
+		os.remove(root)
+		os.mkdir(path.join(root, "source/include"))
+		os.mkdir(path.join(root, "other/actual"))
+		real_writefile(path.join(root, "source/include/test.h"), "Hi there!\n")
+
+		os.chdir(root)
+		os.execute("ln -s other/actual alias")
+		test.istrue(os.islink("alias"))
+		test.istrue(os.linkdir("source/include", "alias/include2"))
+		test.isequal(real_readfile("source/include/test.h"), real_readfile("alias/include2/test.h"))
+		test.istrue(os.rmdir("alias/include2"))
+		test.istrue(os.rmdir("alias"))
+		test.istrue(os.remove("source/include/test.h"))
+		test.istrue(os.rmdir("source/include"))
+		test.istrue(os.rmdir("source"))
+		test.istrue(os.rmdir("other/actual"))
+		test.istrue(os.rmdir("other"))
+		os.chdir(_TESTS_DIR)
+		test.istrue(os.rmdir(root))
 	end
 
 	function suite.linkfile()
@@ -208,12 +230,25 @@
 			return
 		end
 
-		os.execute("ln -s folder/subfolder folder-linkfile-parent")
-		test.istrue(os.islink("folder-linkfile-parent"))
-		test.istrue(os.linkfile("folder/ok.lua", "folder-linkfile-parent/ok2.lua"))
-		test.isequal(real_readfile("folder/ok.lua"), real_readfile("folder-linkfile-parent/ok2.lua"))
-		test.istrue(os.remove("folder-linkfile-parent/ok2.lua"))
-		test.istrue(os.rmdir("folder-linkfile-parent"))
+		local root = os.tmpname()
+		os.remove(root)
+		os.mkdir(path.join(root, "source"))
+		os.mkdir(path.join(root, "other/actual"))
+		real_writefile(path.join(root, "source/ok.lua"), 'return "ok"\n')
+
+		os.chdir(root)
+		os.execute("ln -s other/actual alias")
+		test.istrue(os.islink("alias"))
+		test.istrue(os.linkfile("source/ok.lua", "alias/ok2.lua"))
+		test.isequal(real_readfile("source/ok.lua"), real_readfile("alias/ok2.lua"))
+		test.istrue(os.remove("alias/ok2.lua"))
+		test.istrue(os.rmdir("alias"))
+		test.istrue(os.remove("source/ok.lua"))
+		test.istrue(os.rmdir("source"))
+		test.istrue(os.rmdir("other/actual"))
+		test.istrue(os.rmdir("other"))
+		os.chdir(_TESTS_DIR)
+		test.istrue(os.rmdir(root))
 	end
 
 
