@@ -9,7 +9,7 @@ local entries, err = zip.list(sourceZip)
 
 ### Return Value ###
 
-A 1-based sequence containing the paths in archive order, followed by an error string. On success, index `1` contains the first archive entry and the error value is `nil`.
+A 1-based sequence containing the paths in archive order, followed by an error string. On success, index `1` contains the first archive entry and the error value is `nil`. On failure, the sequence is empty and the error value describes the failure.
 
 ### Availability ###
 

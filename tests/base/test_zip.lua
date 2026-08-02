@@ -134,6 +134,13 @@ function suite.listsFirstEntryAtLuaIndexOne()
 	test.isequal("first.txt", entries[1])
 end
 
+function suite.returnsEmptyListAndErrorWhenArchiveCannotBeOpened()
+	local entries, err = zip.list(archive)
+
+	test.isequal(0, #entries)
+	test.isequal("string", type(err))
+end
+
 function suite.extractsDeeplyNestedFile()
 	local name = string.rep("a/", 80) .. "file.txt"
 	writeZip(name, "hello", { crc = 0x3610a686 })
