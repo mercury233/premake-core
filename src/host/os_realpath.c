@@ -22,7 +22,12 @@ int os_realpath(lua_State* L)
 #elif PLATFORM_WINDOWS
 	ok = (_fullpath(result, path, PATH_MAX) != NULL);
 #else
-	ok = do_getabsolute(result, sizeof(result), path, NULL);
+	if (!do_getabsolute(result, sizeof(result), path, NULL)) {
+		lua_pushnil(L);
+		lua_pushfstring(L, "unable to fetch real path of '%s': path is too long or the current directory is unavailable", path);
+		return 2;
+	}
+	ok = 1;
 #endif
 
 	if (!ok) {

@@ -182,12 +182,38 @@
 		test.isfalse(os.islink("folder/subfolder2"))
 	end
 
+	function suite.linkdir_resolvesSymlinkedDestinationParent()
+		if os.ishost("windows") then
+			return
+		end
+
+		os.execute("ln -s folder/subfolder folder-linkdir-parent")
+		test.istrue(os.islink("folder-linkdir-parent"))
+		test.istrue(os.linkdir("folder/subfolder/include", "folder-linkdir-parent/include2"))
+		test.isequal(real_readfile("folder/subfolder/include/test.h"), real_readfile("folder-linkdir-parent/include2/test.h"))
+		test.istrue(os.rmdir("folder-linkdir-parent/include2"))
+		test.istrue(os.rmdir("folder-linkdir-parent"))
+	end
+
 	function suite.linkfile()
 		test.istrue(os.linkfile("folder/ok.lua", "folder/ok2.lua"))
 		test.istrue(os.islink("folder/ok2.lua"))
 		test.isequal(real_readfile("folder/ok.lua"), real_readfile("folder/ok2.lua"))
 		test.istrue(os.remove("folder/ok2.lua"))
 		test.isfalse(os.islink("folder/ok2.lua"))
+	end
+
+	function suite.linkfile_resolvesSymlinkedDestinationParent()
+		if os.ishost("windows") then
+			return
+		end
+
+		os.execute("ln -s folder/subfolder folder-linkfile-parent")
+		test.istrue(os.islink("folder-linkfile-parent"))
+		test.istrue(os.linkfile("folder/ok.lua", "folder-linkfile-parent/ok2.lua"))
+		test.isequal(real_readfile("folder/ok.lua"), real_readfile("folder-linkfile-parent/ok2.lua"))
+		test.istrue(os.remove("folder-linkfile-parent/ok2.lua"))
+		test.istrue(os.rmdir("folder-linkfile-parent"))
 	end
 
 
