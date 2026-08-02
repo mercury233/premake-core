@@ -25,6 +25,7 @@ return {
 	"base/test_versions.lua",
 	"base/test_http.lua",
 	"base/test_json.lua",
+	"base/test_zip.lua",
 
 	-- Workspace object tests
 	"workspace/test_eachconfig.lua",
