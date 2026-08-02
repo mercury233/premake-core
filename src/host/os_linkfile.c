@@ -15,8 +15,8 @@ int do_linkfile(lua_State* L, const char* src, const char* dst)
 	const wchar_t *wSrcPath, *wDstPath;
 	BOOLEAN res;
 
-	do_normalize(L, srcPath, src);
-	do_normalize(L, dstPath, dst);
+	do_normalize(L, srcPath, sizeof(srcPath), src);
+	do_normalize(L, dstPath, sizeof(dstPath), dst);
 	do_translate(dstPath, '\\');
 	do_translate(srcPath, '\\');
 
@@ -35,16 +35,21 @@ int do_linkfile(lua_State* L, const char* src, const char* dst)
 	{
 		// Get the current working directory
 		wchar_t cwd[MAX_PATH + 1];
-		if (GetCurrentDirectoryW(MAX_PATH + 1, cwd) > MAX_PATH)
+		DWORD cwdLength = GetCurrentDirectoryW(MAX_PATH + 1, cwd);
+		if (cwdLength == 0 || cwdLength > MAX_PATH)
 		{
-			lua_pop(L, 2);
+			lua_pop(L, 2); /* remove converted strings */
 			return FALSE;
 		}
 
 		// Convert the source path to a relative path
 		wchar_t relSrcPath[2 * MAX_PATH + 1];
-		swprintf(relSrcPath, 2 * MAX_PATH + 1, L"%s\\%s", cwd, wSrcPath);
-		relSrcPath[2 * MAX_PATH] = L'\0';
+		int length = swprintf(relSrcPath, 2 * MAX_PATH + 1, L"%ls\\%ls", cwd, wSrcPath);
+		if (length < 0 || length >= 2 * MAX_PATH + 1)
+		{
+			lua_pop(L, 2); /* remove converted strings */
+			return FALSE;
+		}
 
 		res = CreateSymbolicLinkW(wDstPath, relSrcPath, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
 	}
@@ -65,8 +70,11 @@ int do_linkfile(lua_State* L, const char* src, const char* dst)
 		}
 
 		char relSrcPath[2 * PATH_MAX + 1];
-		snprintf(relSrcPath, 2 * PATH_MAX + 1, "%s/%s", cwd, src);
-		relSrcPath[2 * PATH_MAX] = '\0';
+		int length = snprintf(relSrcPath, sizeof(relSrcPath), "%s/%s", cwd, src);
+		if (length < 0 || (size_t)length >= sizeof(relSrcPath))
+		{
+			return FALSE;
+		}
 
 		int res = symlink(relSrcPath, dst);
 		return res == 0;

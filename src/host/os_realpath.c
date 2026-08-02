@@ -22,8 +22,7 @@ int os_realpath(lua_State* L)
 #elif PLATFORM_WINDOWS
 	ok = (_fullpath(result, path, PATH_MAX) != NULL);
 #else
-	do_getabsolute(result, path, NULL);
-	ok = 1;
+	ok = do_getabsolute(result, sizeof(result), path, NULL);
 #endif
 
 	if (!ok) {

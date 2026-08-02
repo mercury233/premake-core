@@ -7,6 +7,15 @@
 	local suite = test.declare("base_os")
 
 	local cwd
+	local real_io_open = io.open
+
+	local function real_readfile(filepath)
+		local f = real_io_open(filepath, "rb")
+		if not f then return nil end
+		local content = f:read("*a")
+		f:close()
+		return content
+	end
 
 	function suite.setup()
 		cwd = os.getcwd()
@@ -168,6 +177,7 @@
 	function suite.linkdir()
 		test.istrue(os.linkdir("folder/subfolder", "folder/subfolder2"))
 		test.istrue(os.islink("folder/subfolder2"))
+		test.isequal(real_readfile("folder/subfolder/hello.txt"), real_readfile("folder/subfolder2/hello.txt"))
 		test.istrue(os.rmdir("folder/subfolder2"))
 		test.isfalse(os.islink("folder/subfolder2"))
 	end
@@ -175,6 +185,7 @@
 	function suite.linkfile()
 		test.istrue(os.linkfile("folder/ok.lua", "folder/ok2.lua"))
 		test.istrue(os.islink("folder/ok2.lua"))
+		test.isequal(real_readfile("folder/ok.lua"), real_readfile("folder/ok2.lua"))
 		test.istrue(os.remove("folder/ok2.lua"))
 		test.isfalse(os.islink("folder/ok2.lua"))
 	end
@@ -542,17 +553,8 @@
 -- Helpers
 --
 
-	-- Save the real functions before test runner installs its stubs.
+	-- Save the real function before test runner installs its stub.
 	local real_writefile_ifnotequal = os.writefile_ifnotequal
-	local real_io_open = io.open
-
-	local function real_readfile(filepath)
-		local f = real_io_open(filepath, "rb")
-		if not f then return nil end
-		local content = f:read("*a")
-		f:close()
-		return content
-	end
 
 	local tmpname = function()
 		local p = os.tmpname()
