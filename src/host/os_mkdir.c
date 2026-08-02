@@ -25,21 +25,21 @@
 
 int do_mkdir(lua_State *L, const char* path)
 {
-	int i, length, s;
+	int i, length;
 #if PLATFORM_WINDOWS
-	struct _stat sb;
+	DWORD attributes;
 	const wchar_t *wpath = luaL_convertstring(L, path);
 	if (!wpath) return 0;  /* unable to encode path */
-	s = _wstat(wpath, &sb);
+	/* MinGW's _wstat() may report directory links as missing. */
+	attributes = GetFileAttributesW(wpath);
 	lua_pop(L, 1);
+	if (attributes != INVALID_FILE_ATTRIBUTES)
+		return 1;
 #else
 	struct stat sb;
-	s = stat(path, &sb);
-#endif
-
-	// if it already exists, return.
-	if (s == 0)
+	if (stat(path, &sb) == 0)
 		return 1;
+#endif
 
 	// find the parent folder name.
 	length = (int)strlen(path);
@@ -96,4 +96,3 @@ int os_mkdir(lua_State* L)
 	lua_pushboolean(L, 1);
 	return 1;
 }
-
