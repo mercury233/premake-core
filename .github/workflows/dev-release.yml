@@ -35,6 +35,31 @@ jobs:
           path: dist/premake-dev-linux-x64.tar.gz
           retention-days: 1
 
+  linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential uuid-dev
+      - name: Build release ARM64 with GCC and contrib libraries
+        run: CC=gcc PLATFORM=ARM64 CONFIG=release PREMAKE_OPTS="--lib-src=contrib --cc=gcc" ./Bootstrap.sh
+      - name: Package
+        run: |
+          mkdir -p dist/package
+          cp bin/release/premake5 dist/package/premake5
+          strip --strip-all dist/package/premake5
+          tar -C dist/package -czf dist/premake-dev-linux-arm64.tar.gz premake5
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: premake-dev-linux-arm64
+          path: dist/premake-dev-linux-arm64.tar.gz
+          retention-days: 1
+
   windows:
     runs-on: windows-2022
     timeout-minutes: 15
@@ -109,7 +134,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    needs: [linux, windows, macosx-universal]
+    needs: [linux, linux-arm64, windows, macosx-universal]
     timeout-minutes: 5
     permissions:
       contents: write
