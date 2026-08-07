@@ -510,6 +510,20 @@ end
 		test.contains({ "-fms-runtime-lib=dll_dbg" }, clang.getcflags(cfg))
 	end
 
+	function suite.cflags_onWindowsStaticRuntimeWithoutExplicitRuntime()
+		system "Windows"
+		staticruntime "On"
+		prepare()
+		test.contains({ "-fms-runtime-lib=static_dbg" }, clang.getcflags(cfg))
+	end
+
+	function suite.cflags_onWindowsDynamicRuntimeWithoutExplicitRuntime()
+		system "Windows"
+		staticruntime "Off"
+		prepare()
+		test.contains({ "-fms-runtime-lib=dll_dbg" }, clang.getcflags(cfg))
+	end
+
 	function suite.cflags_onWindowsStaticRuntimeRelease()
 		system "Windows"
 		staticruntime "On"
@@ -538,6 +552,20 @@ end
 		system "Windows"
 		staticruntime "Off"
 		runtime "Debug"
+		prepare()
+		test.contains({ "-Xlinker /NODEFAULTLIB:libcmt -fms-runtime-lib=dll_dbg" }, clang.getldflags(cfg))
+	end
+
+	function suite.ldflags_onWindowsStaticRuntimeWithoutExplicitRuntime()
+		system "Windows"
+		staticruntime "On"
+		prepare()
+		test.contains({ "-Xlinker /NODEFAULTLIB:libcmt -fms-runtime-lib=static_dbg" }, clang.getldflags(cfg))
+	end
+
+	function suite.ldflags_onWindowsDynamicRuntimeWithoutExplicitRuntime()
+		system "Windows"
+		staticruntime "Off"
 		prepare()
 		test.contains({ "-Xlinker /NODEFAULTLIB:libcmt -fms-runtime-lib=dll_dbg" }, clang.getldflags(cfg))
 	end
