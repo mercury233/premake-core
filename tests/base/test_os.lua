@@ -179,6 +179,16 @@
 		test.isfalse(os.islink("folder/ok2.lua"))
 	end
 
+--
+-- os.mkdir() tests
+--
+
+	function suite.mkdir_ReturnsError_OnExistingFile()
+		test.istrue(os.isfile("folder/ok.lua"))
+		local ok, err = os.mkdir("folder/ok.lua")
+		test.isnil(ok)
+		test.isequal("string", type(err))
+	end
 
 --
 -- os.matchdirs() tests
