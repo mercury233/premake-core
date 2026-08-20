@@ -967,6 +967,7 @@
 			"Default",
 			"AVX",
 			"AVX2",
+			"AVX512",
 			"IA32",
 			"SSE",
 			"SSE2",
@@ -1263,6 +1264,18 @@
 		allowed = {
 			"Default",
 			"On",
+			"Off",
+		},
+	}
+
+	api.register {
+		name = "generateassembly",
+		scope = "config",
+		kind = "string",
+		allowed = {
+			"Default",
+			"On",
+			"Verbose",
 			"Off",
 		},
 	}

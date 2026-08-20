@@ -270,13 +270,31 @@
 		]]
 	end
 
-	function suite.fallbackUserAction()
+	function suite.customUserAction()
 		files { "Hello.custom" }
 		filter "files:Hello.custom"
-		buildaction "CustomAction"
+		buildaction "custom:CustomAction"
 		prepare()
 		test.capture [[
 		<CustomAction Include="Hello.custom" />
+		]]
+	end
+
+	function suite.NoUserAction()
+		files { "Hello.none" }
+		prepare()
+		test.capture [[
+		<None Include="Hello.none" />
+		]]
+	end
+
+	function suite.InvalidUserAction()
+		files { "Hello.oops" }
+		filter "files:Hello.oops"
+		buildaction "Invalid"
+		prepare()
+		test.capture [[
+		<None Include="Hello.oops" />
 		]]
 	end
 

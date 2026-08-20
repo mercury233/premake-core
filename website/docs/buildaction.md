@@ -37,8 +37,9 @@ In C#, `action` can be one of
 | None        | Do nothing with this file.                                            |
 | Resource    | Copy/embed the file with the project resources.                       |
 | UserControl | Treat the source file as [visual user control][2].                    |
+| custom:{str}| Use contents of {str} verbatim as the build action.                   |
 
-If not matched by any of the above, the Action falls back to using the given action name verbatim (with no SubType). This allows project specific user defined custom BuildActions to be specified.
+If not matched by any of the above, the Action falls back to None.
 
 The descriptive actions such as **Component**, **Form*, and **UserControl** are only recognized by Visual Studio, and may be considered optional as Visual Studio will automatically deduce the types when it first examines the project. You only need to specify these actions to avoid unnecessary modifications to the project files on save.
 

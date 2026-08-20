@@ -52,6 +52,17 @@
 --
 -- Returns list of C compiler flags for a configuration.
 --
+	gcc.generateassembly = {
+		generateassembly = {
+			On = "-save-temps=obj",
+			Verbose = { "-save-temps=obj", "-fverbose-asm" },
+		},
+	}
+
+	function gcc.getassemblyflags(cfg)
+		return config.mapFlags(cfg, gcc.generateassembly)
+	end
+
 	gcc.shared = {
 		architecture = {
 			x86 = function (cfg) return iif(cfg.system == p.MACOSX, "-arch i386", "-m32") end,
@@ -73,8 +84,8 @@
 			Strict = "-ffloat-store",
 		},
 		linktimeoptimization = {
-			On = "-flto",
-			Fast = "-flto",
+			On = "-flto=auto",
+			Fast = "-flto=auto",
 		},
 		strictaliasing = {
 			Off = "-fno-strict-aliasing",
@@ -99,6 +110,7 @@
 		vectorextensions = {
 			AVX = "-mavx",
 			AVX2 = "-mavx2",
+			AVX512 = "-mavx512f",
 			SSE = "-msse",
 			SSE2 = "-msse2",
 			SSE3 = "-msse3",
@@ -826,7 +838,8 @@
 	gcc.tools = {
 		cc = "gcc",
 		cxx = "g++",
-		ar = "ar",
+		-- Apple's ar does not support the GCC LTO object format and is not part of the GNU toolchain.
+		ar = function(cfg) return iif(cfg.system == p.MACOSX, "gcc-ar", "ar") end,
 		rc = "windres"
 	}
 
@@ -837,7 +850,12 @@
 		else
 			version = ""
 		end
-		return (cfg.gccprefix or "") .. gcc.tools[tool] .. version
+
+		local value = gcc.tools[tool]
+		if type(value) == "function" then
+			value = value(cfg)
+		end
+		return (cfg.gccprefix or "") .. value .. version
 	end
 
 	function gcc.gettooloutputext(tool)
