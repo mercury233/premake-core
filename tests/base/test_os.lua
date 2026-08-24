@@ -7,6 +7,29 @@
 	local suite = test.declare("base_os")
 
 	local cwd
+	local real_io_open = io.open
+
+	local tmpname = function()
+		local p = os.tmpname()
+		if p:startswith("\\") then
+			p = "." .. p
+		end
+		os.remove(p) -- just needed on POSIX
+		return p
+	end
+
+	local tmpfile = function()
+		local p = tmpname()
+		local f = assert(real_io_open(p, "w"))
+		f:close()
+		return p
+	end
+
+	local tmpdir = function()
+		local p = tmpname()
+		os.mkdir(p)
+		return p
+	end
 
 	function suite.setup()
 		cwd = os.getcwd()
@@ -184,8 +207,9 @@
 --
 
 	function suite.mkdir_ReturnsError_OnExistingFile()
-		test.istrue(os.isfile("folder/ok.lua"))
-		local ok, err = os.mkdir("folder/ok.lua")
+		local filename = tmpfile()
+		local ok, err = os.mkdir(filename)
+		os.remove(filename)
 		test.isnil(ok)
 		test.isequal("string", type(err))
 	end
@@ -552,9 +576,8 @@
 -- Helpers
 --
 
-	-- Save the real functions before test runner installs its stubs.
+	-- Save the real function before test runner installs its stub.
 	local real_writefile_ifnotequal = os.writefile_ifnotequal
-	local real_io_open = io.open
 
 	local function real_readfile(filepath)
 		local f = real_io_open(filepath, "rb")
@@ -563,32 +586,6 @@
 		f:close()
 		return content
 	end
-
-	local tmpname = function()
-		local p = os.tmpname()
-        if p:startswith("\\") then
-            p = "." .. p
-        end
-		os.remove(p) -- just needed on POSIX
-		return p
-	end
-
-	local tmpfile = function()
-		local p = tmpname()
-		if os.ishost("windows") then
-			os.execute("type nul >" .. p)
-		else
-			os.execute("touch " .. p)
-		end
-		return p
-	end
-
-	local tmpdir = function()
-		local p = tmpname()
-		os.mkdir(p)
-		return p
-	end
-
 
 --
 -- os.writefile_ifnotequal() tests.
