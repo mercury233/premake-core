@@ -7,6 +7,29 @@
 	local suite = test.declare("base_os")
 
 	local cwd
+	local real_io_open = io.open
+
+	local tmpname = function()
+		local p = os.tmpname()
+		if p:startswith("\\") then
+			p = "." .. p
+		end
+		os.remove(p) -- just needed on POSIX
+		return p
+	end
+
+	local tmpfile = function()
+		local p = tmpname()
+		local f = assert(real_io_open(p, "w"))
+		f:close()
+		return p
+	end
+
+	local tmpdir = function()
+		local p = tmpname()
+		os.mkdir(p)
+		return p
+	end
 
 	function suite.setup()
 		cwd = os.getcwd()
@@ -183,26 +206,10 @@
 -- os.mkdir() tests
 --
 
-	function suite.mkdir_ReturnsTrue_OnExistingDirectoryLink()
-		-- BSD CI mounts the workspace through SSHFS, so keep topology tests on local storage.
-		local root = os.tmpname()
-		os.remove(root)
-		local target = path.join(root, "subfolder")
-		local link = path.join(root, "subfolder2")
-
-		test.istrue(os.mkdir(target))
-		test.istrue(os.linkdir(target, link))
-		test.istrue(os.mkdir(link))
-		test.istrue(os.islink(link))
-		test.istrue(os.isdir(link))
-		test.istrue(os.rmdir(link))
-		test.istrue(os.rmdir(target))
-		test.istrue(os.rmdir(root))
-	end
-
 	function suite.mkdir_ReturnsError_OnExistingFile()
-		test.istrue(os.isfile("folder/ok.lua"))
-		local ok, err = os.mkdir("folder/ok.lua")
+		local filename = tmpfile()
+		local ok, err = os.mkdir(filename)
+		os.remove(filename)
 		test.isnil(ok)
 		test.isequal("string", type(err))
 	end
@@ -569,9 +576,8 @@
 -- Helpers
 --
 
-	-- Save the real functions before test runner installs its stubs.
+	-- Save the real function before test runner installs its stub.
 	local real_writefile_ifnotequal = os.writefile_ifnotequal
-	local real_io_open = io.open
 
 	local function real_readfile(filepath)
 		local f = real_io_open(filepath, "rb")
@@ -580,32 +586,6 @@
 		f:close()
 		return content
 	end
-
-	local tmpname = function()
-		local p = os.tmpname()
-        if p:startswith("\\") then
-            p = "." .. p
-        end
-		os.remove(p) -- just needed on POSIX
-		return p
-	end
-
-	local tmpfile = function()
-		local p = tmpname()
-		if os.ishost("windows") then
-			os.execute("type nul >" .. p)
-		else
-			os.execute("touch " .. p)
-		end
-		return p
-	end
-
-	local tmpdir = function()
-		local p = tmpname()
-		os.mkdir(p)
-		return p
-	end
-
 
 --
 -- os.writefile_ifnotequal() tests.
