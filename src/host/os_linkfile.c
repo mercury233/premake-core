@@ -37,13 +37,17 @@ int do_linkfile(lua_State* L, const char* src, const char* dst)
 		wchar_t cwd[MAX_PATH + 1];
 		if (GetCurrentDirectoryW(MAX_PATH + 1, cwd) > MAX_PATH)
 		{
-			lua_pop(L, 2);
+			lua_pop(L, 2); /* remove converted strings */
 			return FALSE;
 		}
 
 		// Convert the source path to a relative path
 		wchar_t relSrcPath[2 * MAX_PATH + 1];
-		swprintf(relSrcPath, 2 * MAX_PATH + 1, L"%s\\%s", cwd, wSrcPath);
+		if (swprintf(relSrcPath, 2 * MAX_PATH + 1, L"%ls\\%ls", cwd, wSrcPath) < 0)
+		{
+			lua_pop(L, 2); /* remove converted strings */
+			return FALSE;
+		}
 		relSrcPath[2 * MAX_PATH] = L'\0';
 
 		res = CreateSymbolicLinkW(wDstPath, relSrcPath, SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);

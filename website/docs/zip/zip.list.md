@@ -9,9 +9,8 @@ local entries, err = zip.list(sourceZip)
 
 ### Return Value ###
 
-A new table containing the path of files contained in the archive, following with error string.
+A 1-based sequence containing the paths in archive order, followed by an error string. On success, index `1` contains the first archive entry and the error value is `nil`. On failure, the sequence is empty and the error value describes the failure.
 
 ### Availability ###
 
 Premake 5.0.0 or later.
-
