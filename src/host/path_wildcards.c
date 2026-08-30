@@ -6,7 +6,6 @@
 
 #include "premake.h"
 #include <string.h>
-#include <stdlib.h>
 
 /*
 --Converts from a simple wildcard syntax, where * is "match any"
@@ -21,7 +20,7 @@ int path_wildcards(lua_State* L)
 {
 	size_t length, i;
 	const char* input;
-	char buffer[0x4000];
+	char buffer[PREMAKE_PATH_MAX];
 	char* output;
 
 	input = luaL_checklstring(L, 1, &length);
@@ -30,6 +29,18 @@ int path_wildcards(lua_State* L)
 	for (i = 0; i < length; ++i)
 	{
 		char c = input[i];
+		size_t required = 1;
+		if (strchr("+.-^$()%", c)) {
+			required = 2;
+		}
+		else if (c == '*') {
+			required = ((i + 1) < length && input[i + 1] == '*') ? 2 : 5;
+		}
+
+		if (required >= (size_t)(buffer + sizeof(buffer) - output)) {
+			return luaL_error(L, "wildcards expansion is too long");
+		}
+
 		switch (c)
 		{
 		case '+':
@@ -66,14 +77,9 @@ int path_wildcards(lua_State* L)
 			break;
 		}
 
-		if (output >= buffer + sizeof(buffer))
-		{
-			lua_pushstring(L, "Wildcards expansion too big.");
-			lua_error(L);
-		}
 	}
 
-	*(output++) = '\0';
+	*output = '\0';
 
 	lua_pushstring(L, buffer);
 	return 1;

@@ -40,6 +40,17 @@
 		test.isequal("/a/b/c", path.getabsolute("/a/b/c/"))
 	end
 
+	function suite.getabsolute_preservesFileSystemRoots()
+		test.isequal("/", path.getabsolute("/"))
+		test.isequal("/", path.getabsolute("/directory/.."))
+		test.isequal("C:/", path.getabsolute("C:/"))
+		test.isequal("C:/", path.getabsolute("C:/directory/.."))
+	end
+
+	function suite.getabsolute_doesNotTurnDriveRelativePathIntoRoot()
+		test.isequal("C:", path.getabsolute("C:"))
+	end
+
 	function suite.getabsolute_onLeadingEnvVar()
 		test.isequal("$(HOME)/user", path.getabsolute("$(HOME)/user"))
 	end
@@ -82,6 +93,14 @@
 		local relto = path.getdirectory(os.getcwd())
 		local expected = relto .. "/a/b/c"
 		test.isequal(expected, path.getabsolute("a/b/c", relto .. "/"))
+	end
+
+	function suite.getabsolute_withFileSystemRootAsRelativeTo()
+		test.isequal("/", path.getabsolute(".", "/"))
+		test.isequal("/", path.getabsolute("directory/..", "/"))
+		test.isequal("/child", path.getabsolute("child", "/"))
+		test.isequal("C:/child", path.getabsolute("child", "C:/"))
+		test.isequal("C:/child", path.getabsolute("child", "C:\\"))
 	end
 
 	function suite.getabsolute_acceptsTables_withRelativeTo()
@@ -428,6 +447,10 @@
 		test.isfalse(path.isabsolute("a/b/c"))
 	end
 
+	function suite.isabsolute_ReturnsFalse_OnEmptyPath()
+		test.isfalse(path.isabsolute(""))
+	end
+
 	function suite.isabsolute_ReturnsTrue_OnDollarToken()
 		test.istrue(path.isabsolute("$(SDK_HOME)/include"))
 	end
@@ -529,6 +552,11 @@
 		test.isequal("p2", path.join("", "p2", ""))
 	end
 
+	function suite.join_returnsEmptyString_whenAllPartsAreEmpty()
+		test.isequal("", path.join())
+		test.isequal("", path.join(nil, "", nil))
+	end
+
 	function suite.join_canJoinBareSlash()
 		test.isequal("/Users", path.join("/", "Users"))
 	end
@@ -620,6 +648,10 @@
 	function suite.translate_returnsCorrectSeparator_onMixedPath()
 		local actual = path.translate("dir\\dir/file", "/")
 		test.isequal("dir/dir/file", actual)
+	end
+
+	function suite.translate_acceptsTables_withExplicitSeparator()
+		test.isequal({ "dir/one", "dir/two" }, path.translate({ "dir\\one", "dir\\two" }, "/"))
 	end
 
 	function suite.translate_ReturnsTargetOSSeparator_Windows()
@@ -772,6 +804,12 @@
 		test.isequal("../../test/${MYVAR}", path.normalize("../../test/${MYVAR}"))
 	end
 
+	function suite.normalize_preservesUnclosedTokens()
+		test.isequal("before/$(SolutionDir", path.normalize("before/$(SolutionDir"))
+		test.isequal("before/${HOME", path.normalize("before/${HOME"))
+		test.isequal("before/%{wks.location", path.normalize("before/%{wks.location"))
+	end
+
 	function suite.normalize_quotedpath_withTokens()
 		-- Premake tokens
 		test.isequal("\"%{wks.location}../../test\"", path.normalize("\"%{wks.location}../../test\""))
@@ -786,4 +824,43 @@
 		test.isequal("\"../../${MYVAR}/../test\"", path.normalize("\"../../${MYVAR}/../test\""))
 		-- End
 		test.isequal("\"../../test/${MYVAR}\"", path.normalize("\"../../test/${MYVAR}\""))
+	end
+
+	local longestAbsolutePath = "/" .. string.rep("a", 0x4000 - 3)
+	local overlongPath = longestAbsolutePath .. "a"
+
+	function suite.getabsolute_acceptsLargestSupportedPath()
+		test.isequal(longestAbsolutePath, path.getabsolute(longestAbsolutePath))
+	end
+
+	function suite.getabsolute_rejectsPathBeyondNativeBuffer()
+		test.isfalse(pcall(path.getabsolute, overlongPath))
+	end
+
+	function suite.getrelative_rejectsPathBeyondNativeBuffer()
+		test.isfalse(pcall(path.getrelative, overlongPath, "/destination"))
+	end
+
+	function suite.join_rejectsPathBeyondNativeBuffer()
+		test.isfalse(pcall(path.join, string.rep("a", 0x4000)))
+	end
+
+	function suite.deferredjoin_rejectsPathBeyondNativeBuffer()
+		test.isfalse(pcall(path.deferredjoin, string.rep("a", 0x4000), "%{child}"))
+	end
+
+	function suite.resolvedeferredjoin_rejectsPathBeyondNativeBuffer()
+		test.isfalse(pcall(path.resolvedeferredjoin, string.rep("a", 0x4000) .. "\a/child"))
+	end
+
+	function suite.normalize_rejectsPathBeyondNativeBuffer()
+		test.isfalse(pcall(path.normalize, overlongPath))
+	end
+
+	function suite.translate_rejectsPathBeyondNativeBuffer()
+		test.isfalse(pcall(path.translate, string.rep("a", 0x4000), "/"))
+	end
+
+	function suite.wildcards_rejectsExpansionBeyondNativeBuffer()
+		test.isfalse(pcall(path.wildcards, string.rep("*", 0x4000)))
 	end

@@ -14,15 +14,16 @@
 int path_getrelative(lua_State* L)
 {
 	int i, last, count;
-	char src[0x4000];
-	char dst[0x4000];
+	size_t length;
+	char src[PREMAKE_PATH_MAX];
+	char dst[PREMAKE_PATH_MAX];
 
 	const char* p1 = luaL_checkstring(L, 1);
 	const char* p2 = luaL_checkstring(L, 2);
 
 	/* normalize the paths */
-	do_normalize(L, src, p1);
-	do_normalize(L, dst, p2);
+	do_normalize(L, src, sizeof(src), p1);
+	do_normalize(L, dst, sizeof(dst), p2);
 
 	/* same directory? */
 #if PLATFORM_WINDOWS
@@ -43,6 +44,9 @@ int path_getrelative(lua_State* L)
 	}
 
 	/* find the common leading directories */
+	if (strlen(src) > sizeof(src) - 2 || strlen(dst) > sizeof(dst) - 2) {
+		return luaL_error(L, "path is too long");
+	}
 	strcat(src, "/");
 	strcat(dst, "/");
 
@@ -84,6 +88,10 @@ int path_getrelative(lua_State* L)
 	}
 
 	/* start my result by backing out that many levels */
+	length = strlen(dst + last + 1);
+	if ((size_t)count > (sizeof(src) - length - 1) / 3) {
+		return luaL_error(L, "relative path is too long");
+	}
 	src[0] = '\0';
 	for (i = 0; i < count; ++i) {
 		strcat(src, "../");
@@ -93,7 +101,10 @@ int path_getrelative(lua_State* L)
 	strcat(src, dst + last + 1);
 
 	/* remove trailing slash and done */
-	src[strlen(src) - 1] = '\0';
+	length = strlen(src);
+	if (length > 0 && src[length - 1] == '/') {
+		src[length - 1] = '\0';
+	}
 	lua_pushstring(L, src);
 	return 1;
 }
