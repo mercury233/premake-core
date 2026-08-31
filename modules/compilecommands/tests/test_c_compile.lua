@@ -178,3 +178,44 @@
 
 		test.isequal(expected, args)
 	end
+
+
+	function suite.compile_perfile_vectorextensions()
+		toolset "clang"
+		files { "main.c", "simd.c" }
+
+		filter "files:simd.c"
+			vectorextensions "AVX2"
+		filter {}
+
+		local cfg = prepare()
+		local args = compilecommands.generate(wks, "Debug", "")
+
+		local expected = {
+			{
+				directory = path.getabsolute(prj.location),
+				file = path.getabsolute("main.c"),
+				arguments = {
+					"clang",
+					path.getabsolute("main.c"),
+					"-o",
+					path.getabsolute("obj/Debug/main.o"),
+				},
+				output = path.getabsolute("obj/Debug/main.o"),
+			},
+			{
+				directory = path.getabsolute(prj.location),
+				file = path.getabsolute("simd.c"),
+				arguments = {
+					"clang",
+					"-mavx2",
+					path.getabsolute("simd.c"),
+					"-o",
+					path.getabsolute("obj/Debug/simd.o"),
+				},
+				output = path.getabsolute("obj/Debug/simd.o"),
+			}
+		}
+
+		test.isequal(expected, args)
+	end

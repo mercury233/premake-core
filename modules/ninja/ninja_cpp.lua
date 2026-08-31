@@ -340,16 +340,43 @@ function m.getCFlags(cfg, toolset)
 	return flags
 end
 
+local function getCompileAsFlag(filecfg, toolset)
+	if filecfg and filecfg.compileas and toolset and toolset.shared and toolset.shared.compileas then
+		if p.languages.isc(filecfg.compileas) then
+			return toolset.shared.compileas["C"]
+		elseif p.languages.iscpp(filecfg.compileas) then
+			return toolset.shared.compileas["C++"]
+		end
+	end
+	return nil
+end
+
+local function fileConfigProxy(cfg, filecfg)
+	if not filecfg then
+		return cfg
+	end
+	return setmetatable({}, {
+		__index = function(t, k)
+			local v = filecfg[k]
+			if v ~= nil then
+				return v
+			end
+			return cfg[k]
+		end
+	})
+end
+
 function m.getFileCFlags(cfg, filecfg, toolset)
 	local flags = {}
+	toolset = toolset or ninja.gettoolset(cfg)
+	local compileasFlag = getCompileAsFlag(filecfg, toolset)
 
-	if filecfg.cdialect and filecfg.cdialect ~= cfg.cdialect then
-		local toolFlags = toolset.getcflags(filecfg)
-		flags = table.join(flags, toolFlags)
-	else
-		local toolFlags = toolset.getcflags(cfg)
-		flags = table.join(flags, toolFlags)
+	local proxy = fileConfigProxy(cfg, filecfg)
+	local toolFlags = toolset.getcflags(proxy)
+	if compileasFlag then
+		toolFlags = table.filter(toolFlags, function(flag) return flag ~= compileasFlag end)
 	end
+	flags = table.join(flags, toolFlags)
 	
 	local allDefines = table.join(cfg.defines or {}, filecfg.defines or {})
 	local escaper = p.escaper(p.quote)
@@ -367,7 +394,8 @@ function m.getFileCFlags(cfg, filecfg, toolset)
 	local includedirs = toolset.getincludedirs(cfg, allIncludedirs, allExternalIncludedirs, allFrameworkdirs, allIncludedirsafter)
 	flags = table.join(flags, includedirs)
 	
-	local forceincludes = toolset.getforceincludes(filecfg)
+	local allForceincludes = table.join(cfg.forceincludes or {}, filecfg.forceincludes or {})
+	local forceincludes = toolset.getforceincludes({ project = cfg.project, forceincludes = allForceincludes })
 	flags = table.join(flags, forceincludes)
 
 	local allBuildopts = table.join(cfg.buildoptions or {}, filecfg.buildoptions or {})
@@ -408,14 +436,15 @@ end
 
 function m.getFileCxxFlags(cfg, filecfg, toolset)
 	local flags = {}
+	toolset = toolset or ninja.gettoolset(cfg)
+	local compileasFlag = getCompileAsFlag(filecfg, toolset)
 
-	if filecfg.cppdialect and filecfg.cppdialect ~= cfg.cppdialect then
-		local toolFlags = toolset.getcxxflags(filecfg)
-		flags = table.join(flags, toolFlags)
-	else
-		local toolFlags = toolset.getcxxflags(cfg)
-		flags = table.join(flags, toolFlags)
+	local proxy = fileConfigProxy(cfg, filecfg)
+	local toolFlags = toolset.getcxxflags(proxy)
+	if compileasFlag then
+		toolFlags = table.filter(toolFlags, function(flag) return flag ~= compileasFlag end)
 	end
+	flags = table.join(flags, toolFlags)
 	
 	local allDefines = table.join(cfg.defines or {}, filecfg.defines or {})
 	local escaper = p.escaper(p.quote)
@@ -433,7 +462,8 @@ function m.getFileCxxFlags(cfg, filecfg, toolset)
 	local includedirs = toolset.getincludedirs(cfg, allIncludedirs, allExternalIncludedirs, allFrameworkdirs, allIncludedirsafter)
 	flags = table.join(flags, includedirs)
 	
-	local forceincludes = toolset.getforceincludes(filecfg)
+	local allForceincludes = table.join(cfg.forceincludes or {}, filecfg.forceincludes or {})
+	local forceincludes = toolset.getforceincludes({ project = cfg.project, forceincludes = allForceincludes })
 	flags = table.join(flags, forceincludes)
 
 	local allBuildopts = table.join(cfg.buildoptions or {}, filecfg.buildoptions or {})
@@ -444,73 +474,26 @@ function m.getFileCxxFlags(cfg, filecfg, toolset)
 	return flags
 end
 
-function m.hasPerFileConfiguration(cfg, filecfg)
-	if filecfg.defines and #filecfg.defines > 0 then
-		local parentDefines = cfg.defines or {}
-		if #filecfg.defines ~= #parentDefines then
+function m.hasPerFileConfiguration(cfg, filecfg, rule)
+	if not filecfg then
+		return false
+	end
+	
+	local toolset = ninja.gettoolset(cfg)
+	if not rule or rule == "cc" then
+		local cflagsBase = table.concat(m.getCFlags(cfg, toolset), " ")
+		local cflagsFile = table.concat(m.getFileCFlags(cfg, filecfg, toolset), " ")
+		if cflagsBase ~= cflagsFile then
 			return true
 		end
-		for i, define in ipairs(filecfg.defines) do
-			if define ~= parentDefines[i] then
-				return true
-			end
-		end
 	end
-	
-	if filecfg.undefines and #filecfg.undefines > 0 then
-		local parentUndefines = cfg.undefines or {}
-		if #filecfg.undefines ~= #parentUndefines then
+
+	if not rule or rule == "cxx" then
+		local cxxflagsBase = table.concat(m.getCxxFlags(cfg, toolset), " ")
+		local cxxflagsFile = table.concat(m.getFileCxxFlags(cfg, filecfg, toolset), " ")
+		if cxxflagsBase ~= cxxflagsFile then
 			return true
 		end
-		for i, undefine in ipairs(filecfg.undefines) do
-			if undefine ~= parentUndefines[i] then
-				return true
-			end
-		end
-	end
-	
-	if filecfg.buildoptions and #filecfg.buildoptions > 0 then
-		local parentBuildopts = cfg.buildoptions or {}
-		if #filecfg.buildoptions ~= #parentBuildopts then
-			return true
-		end
-		for i, opt in ipairs(filecfg.buildoptions) do
-			if opt ~= parentBuildopts[i] then
-				return true
-			end
-		end
-	end
-	
-	if filecfg.includedirs and #filecfg.includedirs > 0 then
-		local parentIncludedirs = cfg.includedirs or {}
-		if #filecfg.includedirs ~= #parentIncludedirs then
-			return true
-		end
-		for i, dir in ipairs(filecfg.includedirs) do
-			if dir ~= parentIncludedirs[i] then
-				return true
-			end
-		end
-	end
-	
-	if filecfg.externalincludedirs and #filecfg.externalincludedirs > 0 then
-		local parentExternalIncludedirs = cfg.externalincludedirs or {}
-		if #filecfg.externalincludedirs ~= #parentExternalIncludedirs then
-			return true
-		end
-		for i, dir in ipairs(filecfg.externalincludedirs) do
-			if dir ~= parentExternalIncludedirs[i] then
-				return true
-			end
-		end
-	end
-	
-	if filecfg.cdialect and filecfg.cdialect ~= cfg.cdialect then
-		return true
-	end
-	
-	if filecfg.cppdialect and filecfg.cppdialect ~= cfg.cppdialect then
-		return true
 	end
 	
 	return false
@@ -777,7 +760,6 @@ function m.buildFile(cfg, node, filecfg, objFile, pchFile, prebuildTarget)
 	local extraFlags = {}
 	local toolset = ninja.gettoolset(cfg)
 	local assemblyFile
-	local hasPerFileConfig = m.hasPerFileConfiguration(cfg, filecfg)
 	if toolset.getassemblyflags then
 		local assemblyCfg = filecfg.generateassembly and filecfg or cfg
 		if toolset.getassemblyoutput then
@@ -885,6 +867,7 @@ function m.buildFile(cfg, node, filecfg, objFile, pchFile, prebuildTarget)
 		end
 		
 		-- If the file has per-file configuration, generate flags directly rather than using variables
+		local hasPerFileConfig = m.hasPerFileConfiguration(cfg, filecfg, rule)
 		if hasPerFileConfig then
 			local fileFlags = {}
 			if rule == "cc" then

@@ -60,22 +60,14 @@ function m.getflags(cfg, toolset, fcfg, tool)
 	local flags = {}
 	toolset = toolset or m.gettoolset(cfg)
 
+	local activeCfg = fcfg or cfg
+
 	if tool == "cc" then
-		if fcfg and fcfg.cdialect and fcfg.cdialect ~= cfg.cdialect then
-			local toolflags = toolset.getcflags(fcfg)
-			flags = table.join(flags, toolflags)
-		else
-			local toolflags = toolset.getcflags(cfg)
-			flags = table.join(flags, toolflags)
-		end
+		local toolflags = toolset.getcflags(activeCfg)
+		flags = table.join(flags, toolflags)
 	elseif tool == "cxx" then
-		if fcfg and fcfg.cppdialect and fcfg.cppdialect ~= cfg.cppdialect then
-			local toolflags = toolset.getcxxflags(fcfg)
-			flags = table.join(flags, toolflags)
-		else
-			local toolflags = toolset.getcxxflags(cfg)
-			flags = table.join(flags, toolflags)
-		end
+		local toolflags = toolset.getcxxflags(activeCfg)
+		flags = table.join(flags, toolflags)
 	else
 		error("Unsupported tool '" .. tool .. "' for getting flags")
 	end
@@ -122,6 +114,12 @@ function m.getflags(cfg, toolset, fcfg, tool)
 		buildoptions = table.join(buildoptions, fcfg.buildoptions)
 	end
 
+	-- Force includes
+	local forceincludes = cfg.forceincludes or {}
+	if fcfg and fcfg.forceincludes then
+		forceincludes = table.join(forceincludes, fcfg.forceincludes)
+	end
+
 	local implicitincludedirs = {}
 
 	if _OPTIONS["implicit-includes"] == "On" then
@@ -140,7 +138,7 @@ function m.getflags(cfg, toolset, fcfg, tool)
 						toolset.getdefines(defines),
 						toolset.getundefines(undefines),
 						allincludedirflags,
-						toolset.getforceincludes(fcfg or cfg),
+						toolset.getforceincludes({ project = cfg.project, forceincludes = forceincludes }),
 						buildoptions)
 
 	return flags
