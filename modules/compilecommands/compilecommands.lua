@@ -60,13 +60,13 @@ function m.getflags(cfg, toolset, fcfg, tool)
 	local flags = {}
 	toolset = toolset or m.gettoolset(cfg)
 
-	local activeCfg = fcfg or cfg
+	local proxy = p.fileconfig.proxy(cfg, fcfg)
 
 	if tool == "cc" then
-		local toolflags = toolset.getcflags(activeCfg)
+		local toolflags = toolset.getcflags(proxy)
 		flags = table.join(flags, toolflags)
 	elseif tool == "cxx" then
-		local toolflags = toolset.getcxxflags(activeCfg)
+		local toolflags = toolset.getcxxflags(proxy)
 		flags = table.join(flags, toolflags)
 	else
 		error("Unsupported tool '" .. tool .. "' for getting flags")
@@ -135,7 +135,7 @@ function m.getflags(cfg, toolset, fcfg, tool)
 
 	-- Compile flags and join together
 	flags = table.join(flags,
-						toolset.getdefines(defines),
+						toolset.getdefines(defines, proxy),
 						toolset.getundefines(undefines),
 						allincludedirflags,
 						toolset.getforceincludes({ project = cfg.project, forceincludes = forceincludes }),
@@ -173,8 +173,9 @@ function m.getcompilecommandsarguments(cfg, file, fcfg)
 		return nil
 	end
 
+	local proxy = p.fileconfig.proxy(cfg, fcfg)
 	local toolset = m.gettoolset(cfg)
-	local toolname = toolset.gettoolname(fcfg, toolkey)
+	local toolname = toolset.gettoolname(proxy, toolkey)
 	local args = m.getflags(cfg, toolset, fcfg, toolkey)
 
 	return table.join({ toolname }, args, { file })

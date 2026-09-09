@@ -66,6 +66,7 @@ module.exports = {
 						'allowcopylocal',
 						'androidapilevel',
 						'androidapplibname',
+						'appmanifest',
 						'architecture',
 						'assemblydebug',
 						'atl',

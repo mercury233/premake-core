@@ -855,6 +855,12 @@
 		end
 	end
 
+	function dotnetbase.netcore.appManifest(cfg)
+		if cfg.appmanifest and string.len(cfg.appmanifest) > 0 then
+			_p(2,'<ApplicationManifest>%s</ApplicationManifest>', path.getrelative(cfg.project.location, cfg.appmanifest))
+		end
+	end
+
 	function dotnetbase.netcore.useWpf(cfg)
 		if cfg.wpf == p.ON then
 			_p(2,'<UseWpf>true</UseWpf>')

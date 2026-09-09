@@ -158,6 +158,11 @@
 		kind = "boolean",
 		default = false
 	}
+	p.api.register {
+		name = "appmanifest",
+		scope = "config",
+		kind = "string"
+	}
 
 	p.api.register {
 		name = "enableimplicitusings",

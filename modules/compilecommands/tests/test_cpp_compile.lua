@@ -278,3 +278,214 @@
 
 		test.isequal(expected, args)
 	end
+
+
+--
+-- Check that files with per-file configuration inherit project-level cppdialect and vectorextensions.
+--
+
+	function suite.perfile_inherits_project_cppdialect_and_vectorextensions()
+		toolset "clang"
+		cppdialect "C++17"
+		vectorextensions "AVX2"
+		files { "hello.cpp", "special.cpp" }
+
+		filter "files:special.cpp"
+			buildoptions { "-DFOO" }
+		filter {}
+
+		local cfg = prepare()
+		local args = compilecommands.generate(wks, "Debug", "")
+
+		local expected = {
+			{
+				directory = path.getabsolute(prj.location),
+				file = path.getabsolute("hello.cpp"),
+				arguments = {
+					"clang++",
+					"-mavx2",
+					"-std=c++17",
+					path.getabsolute("hello.cpp"),
+					"-o",
+					path.getabsolute("obj/Debug/hello.o"),
+				},
+				output = path.getabsolute("obj/Debug/hello.o"),
+			},
+			{
+				directory = path.getabsolute(prj.location),
+				file = path.getabsolute("special.cpp"),
+				arguments = {
+					"clang++",
+					"-mavx2",
+					"-std=c++17",
+					"-DFOO",
+					path.getabsolute("special.cpp"),
+					"-o",
+					path.getabsolute("obj/Debug/special.o"),
+				},
+				output = path.getabsolute("obj/Debug/special.o"),
+			}
+		}
+
+		test.isequal(expected, args)
+	end
+
+
+--
+-- Check that per-file vectorextensions overrides project-level vectorextensions.
+--
+
+	function suite.perfile_overrides_project_vectorextensions()
+		toolset "clang"
+		cppdialect "C++17"
+		vectorextensions "AVX2"
+		files { "hello.cpp", "special.cpp" }
+
+		filter "files:special.cpp"
+			vectorextensions "AVX"
+		filter {}
+
+		local cfg = prepare()
+		local args = compilecommands.generate(wks, "Debug", "")
+
+		local expected = {
+			{
+				directory = path.getabsolute(prj.location),
+				file = path.getabsolute("hello.cpp"),
+				arguments = {
+					"clang++",
+					"-mavx2",
+					"-std=c++17",
+					path.getabsolute("hello.cpp"),
+					"-o",
+					path.getabsolute("obj/Debug/hello.o"),
+				},
+				output = path.getabsolute("obj/Debug/hello.o"),
+			},
+			{
+				directory = path.getabsolute(prj.location),
+				file = path.getabsolute("special.cpp"),
+				arguments = {
+					"clang++",
+					"-mavx",
+					"-std=c++17",
+					path.getabsolute("special.cpp"),
+					"-o",
+					path.getabsolute("obj/Debug/special.o"),
+				},
+				output = path.getabsolute("obj/Debug/special.o"),
+			}
+		}
+
+		test.isequal(expected, args)
+	end
+
+
+--
+-- Check that per-file enablewarnings merges with project-level enablewarnings.
+--
+
+	function suite.perfile_inherits_and_merges_enablewarnings()
+		toolset "clang"
+		enablewarnings { "switch" }
+		files { "hello.cpp", "special.cpp" }
+
+		filter "files:special.cpp"
+			enablewarnings { "shadow" }
+		filter {}
+
+		local cfg = prepare()
+		local args = compilecommands.generate(wks, "Debug", "")
+
+		local expected = {
+			{
+				directory = path.getabsolute(prj.location),
+				file = path.getabsolute("hello.cpp"),
+				arguments = {
+					"clang++",
+					"-Wswitch",
+					path.getabsolute("hello.cpp"),
+					"-o",
+					path.getabsolute("obj/Debug/hello.o"),
+				},
+				output = path.getabsolute("obj/Debug/hello.o"),
+			},
+			{
+				directory = path.getabsolute(prj.location),
+				file = path.getabsolute("special.cpp"),
+				arguments = {
+					"clang++",
+					"-Wswitch",
+					"-Wshadow",
+					path.getabsolute("special.cpp"),
+					"-o",
+					path.getabsolute("obj/Debug/special.o"),
+				},
+				output = path.getabsolute("obj/Debug/special.o"),
+			}
+		}
+
+		test.isequal(expected, args)
+	end
+
+
+--
+-- Check that compilecommands.getflags passes project-level proxy configuration to toolset.getdefines.
+--
+
+	function suite.getflags_passes_proxy_to_getdefines()
+		local cfg = prepare()
+		local passedConfig = nil
+		local mockToolset = {
+			gettoolname = function() return "cxx" end,
+			getstructuredimplicitincludedirs = function() return {} end,
+			getcxxflags = function() return {} end,
+			getstructuredincludedirs = function() return {} end,
+			getdefines = function(defines, c)
+				passedConfig = c
+				return {}
+			end,
+			getundefines = function() return {} end,
+			getforceincludes = function() return {} end,
+		}
+
+		compilecommands.getflags(cfg, mockToolset, nil, "cxx")
+		test.istrue(cfg == passedConfig)
+	end
+
+
+--
+-- Check that compilecommands.getflags passes file-level proxy configuration to toolset.getdefines.
+--
+
+	function suite.getflags_passes_file_proxy_to_getdefines()
+		files { "special.cpp" }
+		filter "files:special.cpp"
+			characterset "MBCS"
+		filter {}
+
+		local cfg = prepare()
+		local tr = p.project.getsourcetree(prj)
+		local node = tr.children[1]
+		local fcfg = p.fileconfig.getconfig(node, cfg)
+
+		local passedConfig = nil
+		local mockToolset = {
+			gettoolname = function() return "cxx" end,
+			getstructuredimplicitincludedirs = function() return {} end,
+			getcxxflags = function() return {} end,
+			getstructuredincludedirs = function() return {} end,
+			getdefines = function(defines, c)
+				passedConfig = c
+				return {}
+			end,
+			getundefines = function() return {} end,
+			getforceincludes = function() return {} end,
+		}
+
+		compilecommands.getflags(cfg, mockToolset, fcfg, "cxx")
+		test.isnotnil(passedConfig)
+		test.isequal("MBCS", passedConfig.characterset)
+	end
+
+

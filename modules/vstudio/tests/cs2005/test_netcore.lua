@@ -187,6 +187,23 @@ function suite.multiple_target_dotnet_frameworks()
 	]]
 end
 
+function suite.set_appmanifest()
+	p.action.set("vs2022")
+	dotnetframework { "net10.0" }
+	appmanifest "app.manifest"
+	prepareProjectProperties()
+	test.capture [[
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<AppDesignerFolder>Properties</AppDesignerFolder>
+		<TargetFramework>net10.0</TargetFramework>
+		<Configurations>Debug;Release;Distribution</Configurations>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+	</PropertyGroup>
+	]]
+end
+
 function suite.project_element_configurations()
 	p.action.set("vs2022")
 	dotnetframework "net8.0"

@@ -2,7 +2,7 @@
 -- test_ninja_project.lua
 -- Test the generation of complete project ninja files
 -- Author: Nick Clark
--- Copyright (c) 2025 Jess Perkins and the Premake project
+-- Copyright (c) 2025-2026 Jess Perkins and the Premake project
 --
 
 local suite = test.declare("ninja_project")
@@ -371,4 +371,83 @@ build bin/Debug/libMyProject2.so: link_gcc obj/Debug/main.o
   ldflags = $ldflags_MyProject2_Debug
 		]]
 
+	end
+
+
+--
+-- Test that having multiple toolsets does not emit duplicate rules
+-- and emits compilation rules for each toolset.
+--
+
+	function suite.multipleToolsetsNoDuplicateRules()
+		local wks, prj = test.createWorkspace()
+		configurations { "Debug", "Release" }
+		kind "ConsoleApp"
+		language "C++"
+		files { "main.cpp" }
+
+		filter "configurations:Debug"
+			toolset "gcc"
+
+		filter "configurations:Release"
+			toolset "clang"
+
+		filter {}
+
+		prj = test.getproject(wks, 1)
+
+		local output = p.capture(function()
+			ninja.cpp.generate(prj)
+		end)
+
+		-- Both toolset rules must be present
+		test.istrue(output:find("rule cc_gcc") ~= nil)
+		test.istrue(output:find("rule cxx_gcc") ~= nil)
+		test.istrue(output:find("rule link_gcc") ~= nil)
+		test.istrue(output:find("rule cc_clang") ~= nil)
+		test.istrue(output:find("rule cxx_clang") ~= nil)
+		test.istrue(output:find("rule link_clang") ~= nil)
+
+		-- Utility rules must be emitted exactly once
+		local _, copyCount = output:gsub("rule copy\n", "")
+		test.isequal(1, copyCount)
+
+		local _, prebuildCount = output:gsub("rule prebuild\n", "")
+		test.isequal(1, prebuildCount)
+
+		local _, prelinkCount = output:gsub("rule prelink\n", "")
+		test.isequal(1, prelinkCount)
+
+		local _, postbuildCount = output:gsub("rule postbuild\n", "")
+		test.isequal(1, postbuildCount)
+
+		local _, customCount = output:gsub("rule custom\n", "")
+		test.isequal(1, customCount)
+
+		-- Ensure build commands use their respective toolset rule
+		test.istrue(output:find("cxx_gcc") ~= nil)
+		test.istrue(output:find("cxx_clang") ~= nil)
+		test.istrue(output:find("link_gcc") ~= nil)
+		test.istrue(output:find("link_clang") ~= nil)
+	end
+
+
+--
+-- Test that default toolset does not produce _nil rules
+--
+
+	function suite.defaultToolsetNotNil()
+		local wks, prj = test.createWorkspace()
+		configurations { "Debug" }
+		kind "ConsoleApp"
+		language "C++"
+		files { "main.cpp" }
+
+		prj = test.getproject(wks, 1)
+
+		local output = p.capture(function()
+			ninja.cpp.generate(prj)
+		end)
+
+		test.isnil(output:find("_nil"))
 	end

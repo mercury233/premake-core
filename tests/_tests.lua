@@ -10,6 +10,7 @@ return {
 	"base/test_context.lua",
 	"base/test_criteria.lua",
 	"base/test_detoken.lua",
+	"base/test_fileconfig.lua",
 	"base/test_include.lua",
 	"base/test_module_loader.lua",
 	"base/test_option.lua",

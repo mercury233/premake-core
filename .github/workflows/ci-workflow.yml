@@ -8,18 +8,25 @@ on:
 
 jobs:
   linux:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.target.os }}
     strategy:
       matrix:
         config: [debug, release]
-        platform: [x64, ARM64]
         depsrc: [none, contrib, system]
         cc: [gcc, clang]
-        include:
-          - platform: x64
-            os: ubuntu-latest
-          - platform: ARM64
-            os: ubuntu-24.04-arm
+        target:
+          - os: ubuntu-22.04
+            platform: x64
+          - os: ubuntu-24.04
+            platform: x64
+          - os: ubuntu-26.04
+            platform: x64
+          - os: ubuntu-22.04-arm
+            platform: ARM64
+          - os: ubuntu-24.04-arm
+            platform: ARM64
+          - os: ubuntu-26.04-arm
+            platform: ARM64
     timeout-minutes: 15
     steps:
     - name: Checkout
@@ -34,7 +41,7 @@ jobs:
         sudo apt-get update 
         sudo apt-get -y install libcurl4-openssl-dev libzip-dev liblua5.3-dev
     - name: Build
-      run: PLATFORM=${{ matrix.platform }} CONFIG=${{ matrix.config }} PREMAKE_OPTS="--lib-src=${{ matrix.depsrc }} --cc=${{ matrix.cc }}" ./Bootstrap.sh
+      run: PLATFORM=${{ matrix.target.platform }} CONFIG=${{ matrix.config }} PREMAKE_OPTS="--lib-src=${{ matrix.depsrc }} --cc=${{ matrix.cc }}" ./Bootstrap.sh
     - name: Test
       run: bin/${{ matrix.config }}/premake5 test --test-all
     - name: Docs check
@@ -43,7 +50,12 @@ jobs:
       if: matrix.config == 'release' && matrix.depsrc == 'contrib' && matrix.cc == 'gcc'
       uses: actions/upload-artifact@v7
       with:
-        name: premake-linux-${{ matrix.platform }}
+        name: >-
+          premake-linux-${{ matrix.target.platform }}-glibc-${{ 
+            (matrix.target.os == 'ubuntu-22.04' || matrix.target.os == 'ubuntu-22.04-arm') && '2.35' || 
+            (matrix.target.os == 'ubuntu-24.04' || matrix.target.os == 'ubuntu-24.04-arm') && '2.39' || 
+            (matrix.target.os == 'ubuntu-26.04' || matrix.target.os == 'ubuntu-26.04-arm') && '2.43' 
+          }}
         path: bin/${{ matrix.config }}/
   macosx:
     runs-on: macos-latest
@@ -273,7 +285,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Start FreeBSD VM
-      uses: vmactions/freebsd-vm@v1.5.2
+      uses: vmactions/freebsd-vm@v1.5.5
       with:
         usesh: true
         sync: sshfs
@@ -312,7 +324,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Start OpenBSD VM
-      uses: vmactions/openbsd-vm@v1.4.5
+      uses: vmactions/openbsd-vm@v1.4.7
       with:
         usesh: true
         sync: sshfs
@@ -351,7 +363,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Build on NetBSD VM
-      uses: vmactions/netbsd-vm@v1.4.5
+      uses: vmactions/netbsd-vm@v1.4.9
       with:
         usesh: true
         prepare: |
@@ -384,7 +396,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Build on DragonflyBSD VM
-      uses: vmactions/dragonflybsd-vm@v1.3.1
+      uses: vmactions/dragonflybsd-vm@v1.3.3
       with:
         usesh: true
         prepare: |
@@ -415,7 +427,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Build on Solaris VM
-      uses: vmactions/solaris-vm@v1.3.8
+      uses: vmactions/solaris-vm@v1.3.9
       with:
         usesh: true
         cpu: 4
@@ -447,7 +459,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Build on OmniOS VM
-      uses: vmactions/omnios-vm@v1.3.4
+      uses: vmactions/omnios-vm@v1.3.6
       with:
         usesh: true
         prepare: |
