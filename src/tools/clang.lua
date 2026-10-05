@@ -73,7 +73,6 @@
 		}),
 		structmemberalign = gcc.shared.structmemberalign,
 		visibility = gcc.shared.visibility,
-		inlinesvisibility = gcc.shared.inlinesvisibility,
 		linktimeoptimization = {
 			On = "-flto",
 			Fast = "-flto=thin",
@@ -318,7 +317,7 @@
 					else
 						table.insert(r, '-Xlinker /NOIMPLIB')
 					end
-				elseif cfg.system == p.LINUX then
+				elseif cfg.system == p.LINUX or table.contains(os.getSystemTags(cfg.system), "bsd") then
 					table.insert(r, '-Wl,-soname=' .. p.quoted(cfg.linktarget.name))
 				elseif table.contains(os.getSystemTags(cfg.system), "darwin") then
 					table.insert(r, '-Wl,-install_name,' .. p.quoted('@rpath/' .. cfg.linktarget.name))

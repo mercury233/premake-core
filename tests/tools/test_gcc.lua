@@ -510,6 +510,13 @@
 		test.contains({ "-shared" }, gcc.getldflags(cfg))
 	end
 
+	function suite.ldflags_onBSDSharedLib()
+		system "bsd"
+		kind "SharedLib"
+		prepare()
+		test.contains({ "-shared", "-Wl,-soname=libMyProject.so" }, gcc.getldflags(cfg))
+	end
+
 	function suite.ldflags_onWindows_onWholeArchive()
 		system "windows"
 		links { "MyProject2" }
@@ -1477,7 +1484,7 @@ end
 	function suite.cxxflags_onInlinesVisibilityHidden()
 		inlinesvisibility "Hidden"
 		prepare()
-		test.contains({ "-fvisibility-inlines-hidden" }, gcc.getcflags(cfg))
+		test.excludes({ "-fvisibility-inlines-hidden" }, gcc.getcflags(cfg))
 		test.contains({ "-fvisibility-inlines-hidden" }, gcc.getcxxflags(cfg))
 	end
 
@@ -1558,6 +1565,16 @@ end
 		prepare()
 	
 		test.contains({ "-Wl,-rpath,'@loader_path/libs'" }, gcc.getrunpathdirs(cfg, paths))
+	end
+
+	function suite.runpathdirs_onRelativeDir_bsd()
+		local paths = { "libs" }
+
+		system "bsd"
+		runpathdirs(paths)
+		prepare()
+
+		test.isequal({ "-Wl,-rpath,'$$ORIGIN/libs'", "-Wl,-z,origin" }, gcc.getrunpathdirs(cfg, paths))
 	end
 
 	function suite.runpathdirs_onAbsoluteDir()	

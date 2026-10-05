@@ -524,6 +524,13 @@ end
 		test.contains({ "-shared", "-Xlinker /NOIMPLIB" }, clang.getldflags(cfg))
 	end
 
+	function suite.ldflags_onBSDSharedLib()
+		system "bsd"
+		kind "SharedLib"
+		prepare()
+		test.contains({ "-shared", "-Wl,-soname=libMyProject.so" }, clang.getldflags(cfg))
+	end
+
 
 --
 -- Check handling of Run-Time Library flags.
@@ -625,4 +632,11 @@ end
 		characterset "Unicode"
 		prepare()
 		test.excludes({ "-municode" }, clang.getldflags(cfg))
+	end
+
+	function suite.inlinesVisibilityHidden_onlyInCxxFlags()
+		inlinesvisibility "Hidden"
+		prepare()
+		test.excludes({ "-fvisibility-inlines-hidden" }, clang.getcflags(cfg))
+		test.contains({ "-fvisibility-inlines-hidden" }, clang.getcxxflags(cfg))
 	end
