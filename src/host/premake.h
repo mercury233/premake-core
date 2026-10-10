@@ -110,6 +110,8 @@
 #define PATH_MAX   (4096)
 #endif
 
+#define PREMAKE_PATH_MAX   (0x4000)
+
 /* A success return code */
 #define OKAY   (0)
 
@@ -128,13 +130,13 @@ extern const char* scripts_path;
 /* Bootstrapping helper functions */
 int do_chdir(lua_State* L, const char* path);
 uint32_t do_hash(const char* str, int seed);
-void do_getabsolute(char* result, const char* value, const char* relative_to);
+int do_getabsolute(char* result, size_t result_size, const char* value, const char* relative_to);
 int do_getcwd(char* buffer, size_t size);
 int do_isabsolute(const char* path);
 int do_absolutetype(const char* path);
 int do_isfile(lua_State* L, const char* filename);
 int do_locate(lua_State* L, const char* filename, const char* path);
-void do_normalize(lua_State* L, char* buffer, const char* path);
+void do_normalize(lua_State* L, char* buffer, size_t buffer_size, const char* path);
 int do_pathsearch(lua_State* L, const char* filename, const char* path);
 void do_translate(char* value, const char sep);
 

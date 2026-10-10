@@ -109,16 +109,21 @@ static void* normalize_substring(const char* srcPtr, const char* srcEnd, char* d
 #undef IS_SEP_OR_END
 }
 
-static int skip_tokens(const char *readPtr)
+static int skip_tokens(const char *readPtr, const char *endPtr)
 {
 	int skipped = 0;
 
 #define DO_SKIP_FOR(__kind)\
-if (IS_ ## __kind ## _START(readPtr)) { \
+if (readPtr < endPtr && IS_ ## __kind ## _START(readPtr)) { \
 	do \
 	{ \
 		skipped++; \
-	} while (!IS_ ## __kind ## _END(readPtr++)); \
+		if (IS_ ## __kind ## _END(readPtr)) { \
+			++readPtr; \
+			break; \
+		} \
+		++readPtr; \
+	} while (readPtr < endPtr); \
 } \
 // DO_SKIP_FOR
 
@@ -129,10 +134,10 @@ if (IS_ ## __kind ## _START(readPtr)) { \
 		DO_SKIP_FOR(VS_VAR)
 		DO_SKIP_FOR(UNIX_ENVVAR)
 
-	} while (IS_WIN_ENVVAR_START(readPtr) ||
+	} while (readPtr < endPtr && (IS_WIN_ENVVAR_START(readPtr) ||
 			IS_VS_VAR_START(readPtr) ||
 			IS_UNIX_ENVVAR_START(readPtr) ||
-			IS_PREMAKE_TOKEN_START(readPtr));
+			IS_PREMAKE_TOKEN_START(readPtr)));
 
 	return skipped;
 #undef DO_SKIP_FOR
@@ -140,11 +145,17 @@ if (IS_ ## __kind ## _START(readPtr)) { \
 
 int path_normalize(lua_State* L)
 {
-	const char *path = luaL_checkstring(L, 1);
+	size_t pathLength;
+	const char *path = luaL_checklstring(L, 1, &pathLength);
 	const char *readPtr = path;
-	char buffer[0x4000] = { 0 };
+	char buffer[PREMAKE_PATH_MAX] = { 0 };
 	char *writePtr = buffer;
 	const char *endPtr;
+	const char *pathEnd = path + pathLength;
+
+	if (pathLength > sizeof(buffer) - 2) {
+		return luaL_error(L, "path is too long");
+	}
 
 	// skip leading white spaces
 	while (IS_SPACE(*readPtr))
@@ -154,7 +165,7 @@ int path_normalize(lua_State* L)
 
 	while (*endPtr) {
 
-		int skipped = skip_tokens(readPtr);
+		int skipped = skip_tokens(readPtr, pathEnd);
 		if (skipped > 0) {
 
 			if (readPtr != path && writePtr != buffer &&
@@ -207,17 +218,21 @@ int path_normalize(lua_State* L)
 
 
 /* Call the scripted path.normalize(), to allow for overrides */
-void do_normalize(lua_State* L, char* buffer, const char* path)
+void do_normalize(lua_State* L, char* buffer, size_t buffer_size, const char* path)
 {
 	int top = lua_gettop(L);
+	size_t length;
 
 	lua_getglobal(L, "path");
 	lua_getfield(L, -1, "normalize");
 	lua_pushstring(L, path);
 	lua_call(L, 1, 1);
 
-	path = luaL_checkstring(L, -1);
-	strcpy(buffer, path);
+	path = luaL_checklstring(L, -1, &length);
+	if (length >= buffer_size) {
+		luaL_error(L, "path is too long");
+	}
+	memcpy(buffer, path, length + 1);
 
 	lua_settop(L, top);
 }

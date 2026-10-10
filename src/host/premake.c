@@ -544,12 +544,20 @@ int premake_locate_file(lua_State* L, const char* filename, int searchMask)
 
 
 
-static const char* set_scripts_path(const char* relativePath)
+static int set_scripts_path(lua_State* L, const char* relativePath)
 {
-	char* path = (char*)malloc(PATH_MAX);
-	do_getabsolute(path, relativePath, NULL);
+	char* path = (char*)malloc(PREMAKE_PATH_MAX);
+	if (!path) {
+		lua_pushstring(L, "unable to allocate memory for --scripts path");
+		return !OKAY;
+	}
+	if (!do_getabsolute(path, PREMAKE_PATH_MAX, relativePath, NULL)) {
+		free(path);
+		lua_pushstring(L, "unable to resolve --scripts path; it may be too long or the current directory may be unavailable");
+		return !OKAY;
+	}
 	scripts_path = path;
-	return scripts_path;
+	return OKAY;
 }
 
 
@@ -647,11 +655,17 @@ static int process_arguments(lua_State* L, int argc, const TCHAR** argv)
 		 * manifest and scripts later if necessary */
 		if (strncmp(parg, "/scripts=", 9) == 0)
 		{
-			set_scripts_path(parg + 9);
+			if (set_scripts_path(L, parg + 9) != OKAY) {
+				premake_handle_lua_error(L);
+				return !OKAY;
+			}
 		}
 		else if (strncmp(parg, "--scripts=", 10) == 0)
 		{
-			set_scripts_path(parg + 10);
+			if (set_scripts_path(L, parg + 10) != OKAY) {
+				premake_handle_lua_error(L);
+				return !OKAY;
+			}
 		}
 #if PLATFORM_WINDOWS
 		lua_pop(L, 1); /* pop the original converted parg string */
