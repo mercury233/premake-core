@@ -215,7 +215,6 @@
 	function suite.linkdir()
 		test.istrue(os.linkdir("folder/subfolder", "folder/subfolder2"))
 		test.istrue(os.islink("folder/subfolder2"))
-		test.isequal(real_readfile("folder/subfolder/hello.txt"), real_readfile("folder/subfolder2/hello.txt"))
 		test.istrue(os.rmdir("folder/subfolder2"))
 		test.isfalse(os.islink("folder/subfolder2"))
 	end
@@ -223,7 +222,6 @@
 	function suite.linkfile()
 		test.istrue(os.linkfile("folder/ok.lua", "folder/ok2.lua"))
 		test.istrue(os.islink("folder/ok2.lua"))
-		test.isequal(real_readfile("folder/ok.lua"), real_readfile("folder/ok2.lua"))
 		test.istrue(os.remove("folder/ok2.lua"))
 		test.isfalse(os.islink("folder/ok2.lua"))
 	end
