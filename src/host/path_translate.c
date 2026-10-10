@@ -18,17 +18,22 @@ void do_translate(char* value, const char sep)
 	}
 }
 
-static void translate(char* result, const char* value, const char sep)
+static int translate(char* result, size_t result_size, const char* value, const char sep)
 {
-	strcpy(result, value);
+	size_t length = strlen(value);
+	if (length >= result_size) {
+		return 0;
+	}
+	memcpy(result, value, length + 1);
 	do_translate(result, sep);
+	return 1;
 }
 
 
 int path_translate(lua_State* L)
 {
 	const char* sep;
-	char buffer[0x4000];
+	char buffer[PREMAKE_PATH_MAX];
 
 	if (lua_gettop(L) == 1) {
 		lua_getglobal(L, "path");
@@ -46,8 +51,10 @@ int path_translate(lua_State* L)
 		lua_newtable(L);
 		lua_pushnil(L);
 		while (lua_next(L, 1)) {
-			const char* value = luaL_checkstring(L, 4);
-			translate(buffer, value, sep[0]);
+			const char* value = luaL_checkstring(L, -1);
+			if (!translate(buffer, sizeof(buffer), value, sep[0])) {
+				return luaL_error(L, "path is too long");
+			}
 			lua_pop(L, 1);
 
 			lua_pushstring(L, buffer);
@@ -57,7 +64,9 @@ int path_translate(lua_State* L)
 	}
 	else {
 		const char* value = luaL_checkstring(L, 1);
-		translate(buffer, value, sep[0]);
+		if (!translate(buffer, sizeof(buffer), value, sep[0])) {
+			return luaL_error(L, "path is too long");
+		}
 		lua_pushstring(L, buffer);
 		return 1;
 	}

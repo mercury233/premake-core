@@ -21,6 +21,8 @@ int do_absolutetype(const char* path)
 
 	while (path[0] == '"' || path[0] == '!')
 		path++;
+	if (path[0] == '\0')
+		return JOIN_RELATIVE;
 	if (path[0] == '/' || path[0] == '\\')
 		return JOIN_ABSOLUTE;
 	if (isalpha((int)path[0]) && path[1] == ':')

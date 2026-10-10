@@ -5,6 +5,7 @@
  */
 
 #include <sys/stat.h>
+#include <string.h>
 #include "premake.h"
 
 int do_linkdir(lua_State* L, const char* src, const char* dst)
@@ -16,8 +17,8 @@ int do_linkdir(lua_State* L, const char* src, const char* dst)
 	const wchar_t *wSrcPath, *wDstPath;
 	BOOLEAN res;
 
-	do_normalize(L, srcPath, src);
-	do_normalize(L, dstPath, dst);
+	do_normalize(L, srcPath, sizeof(srcPath), src);
+	do_normalize(L, dstPath, sizeof(dstPath), dst);
 	do_translate(dstPath, '\\');
 	do_translate(srcPath, '\\');
 
@@ -36,7 +37,8 @@ int do_linkdir(lua_State* L, const char* src, const char* dst)
 	{
 		// Get the current working directory
 		wchar_t cwd[MAX_PATH + 1];
-		if (GetCurrentDirectoryW(MAX_PATH + 1, cwd) > MAX_PATH)
+		DWORD cwdLength = GetCurrentDirectoryW(MAX_PATH + 1, cwd);
+		if (cwdLength == 0 || cwdLength > MAX_PATH)
 		{
 			lua_pop(L, 2); /* remove converted strings */
 			return FALSE;
@@ -44,8 +46,12 @@ int do_linkdir(lua_State* L, const char* src, const char* dst)
 
 		// Convert the source path to a relative path
 		wchar_t relSrcPath[2 * MAX_PATH + 1];
-		swprintf(relSrcPath, 2 * MAX_PATH + 1, L"%s\\%s", cwd, wSrcPath);
-		relSrcPath[2 * MAX_PATH] = L'\0';
+		int length = swprintf(relSrcPath, 2 * MAX_PATH + 1, L"%ls\\%ls", cwd, wSrcPath);
+		if (length < 0 || length >= 2 * MAX_PATH + 1)
+		{
+			lua_pop(L, 2); /* remove converted strings */
+			return FALSE;
+		}
 
 		res = CreateSymbolicLinkW(wDstPath, relSrcPath, SYMBOLIC_LINK_FLAG_DIRECTORY | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
 	}
@@ -56,20 +62,20 @@ int do_linkdir(lua_State* L, const char* src, const char* dst)
 	lua_pop(L, 2);
 	return res != 0;
 #else
-	(void)L;
-	if (!do_isabsolute(src))
+	if (src[0] != '/')
 	{
-		char cwd[PATH_MAX];
-		if (!do_getcwd(cwd, PATH_MAX))
+		char cwd[PREMAKE_PATH_MAX];
+		int res;
+
+		if (!do_getcwd(cwd, sizeof(cwd)))
 		{
 			return FALSE;
 		}
 
-		char relSrcPath[2 * PATH_MAX + 1];
-		snprintf(relSrcPath, 2 * PATH_MAX + 1, "%s/%s", cwd, src);
-		relSrcPath[2 * PATH_MAX] = '\0';
-
-		int res = symlink(relSrcPath, dst);
+		/* Preserve '..' across symlinks and allow targets that do not exist yet. */
+		lua_pushfstring(L, "%s/%s", cwd, src);
+		res = symlink(lua_tostring(L, -1), dst);
+		lua_pop(L, 1);
 		return res == 0;
 	}
 	else

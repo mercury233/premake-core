@@ -5,13 +5,12 @@
 */
 
 #include "premake.h"
-#include <assert.h>
 #include <string.h>
 #include "path_isabsolute.h"
 
 #define DEFERRED_JOIN_DELIMITER '\a'
 
-char* path_join_single(char* buffer, char* ptr, const char* part, int allowDeferredJoin)
+static char* path_join_single(char* buffer, char* ptr, char* end, const char* part, int allowDeferredJoin)
 {
 	int absoluteType;
 	size_t len = strlen(part);
@@ -84,18 +83,27 @@ char* path_join_single(char* buffer, char* ptr, const char* part, int allowDefer
 
 		/* if the path is already started, split parts */
 		if (ptr != buffer && *(ptr - 1) != '/') {
+			if (ptr == end - 1) {
+				return NULL;
+			}
 			*(ptr++) = '/';
 		}
 
 		break;
 	case JOIN_MAYBE_ABSOLUTE:
+		if (ptr == end - 1) {
+			return NULL;
+		}
 		*ptr = DEFERRED_JOIN_DELIMITER;
 		ptr++;
 		break;
 	}
 
 	/* append new part */
-	strncpy(ptr, part, len);
+	if (len >= (size_t)(end - ptr)) {
+		return NULL;
+	}
+	memcpy(ptr, part, len);
 	ptr += len;
 	*ptr = '\0';
 	return ptr;
@@ -105,7 +113,7 @@ int path_join_internal(lua_State* L, int allowDeferredJoin)
 {
 	int i;
 	const char* part;
-	char buffer[0x4000];
+	char buffer[PREMAKE_PATH_MAX] = { 0 };
 	char* ptr = buffer;
 
 	/* for each argument... */
@@ -118,7 +126,10 @@ int path_join_internal(lua_State* L, int allowDeferredJoin)
 
 		/* grab the next argument */
 		part = luaL_checkstring(L, i);
-		ptr = path_join_single(buffer, ptr, part, allowDeferredJoin);
+		ptr = path_join_single(buffer, ptr, buffer + sizeof(buffer), part, allowDeferredJoin);
+		if (!ptr) {
+			return luaL_error(L, "path is too long");
+		}
 	}
 
 	lua_pushstring(L, buffer);
@@ -151,51 +162,38 @@ int path_has_deferred_join(lua_State* L)
 	return 1;
 }
 
-// Copy string "in" with at most "insz" chars to buffer "out", which
-// is "outsz" bytes long. The output is always 0-terminated. Unlike
-// strncpy(), strncpy_t() does not zero fill remaining space in the
-// output buffer:
-// Credit: https://stackoverflow.com/a/58237928
-static char* strncpy_t(char* out, size_t outsz, const char* in, size_t insz){
-    assert(outsz > 0);
-    while(--outsz > 0 && insz > 0 && *in) { *out++ = *in++; insz--; }
-    *out = 0;
-    return out;
-}
-
 int path_resolve_deferred_join(lua_State* L)
 {
 	const char* path = luaL_checkstring(L, -1);
-	char inBuffer[0x4000];
-	char outBuffer[0x4000];
+	char inBuffer[PREMAKE_PATH_MAX];
+	char outBuffer[PREMAKE_PATH_MAX] = { 0 };
 	char* ptr = outBuffer;
 	char* nextPart;
+	char* delimiter;
 	size_t len = strlen(path);
-	int i;
-	int numParts = 0;
-	strncpy_t(inBuffer, sizeof(inBuffer), path, len);
-	char *parts[0x200];
-	// break up the string into parts and index the start of each part
-	nextPart = strchr(inBuffer, DEFERRED_JOIN_DELIMITER);
-	if (nextPart == NULL) // nothing to do
+	if (strchr(path, DEFERRED_JOIN_DELIMITER) == NULL)
 	{
-		lua_pushlstring(L, inBuffer, len);
+		lua_pushvalue(L, -1);
 		return 1;
 	}
-	parts[numParts++] = inBuffer;
-	while (nextPart != NULL)
-	{
-		*nextPart = '\0';
-		nextPart++;
-		parts[numParts++] = nextPart;
-		nextPart = strchr(nextPart, DEFERRED_JOIN_DELIMITER);
+	if (len >= sizeof(inBuffer)) {
+		return luaL_error(L, "path is too long");
 	}
+	memcpy(inBuffer, path, len + 1);
 
-	/* for each part... */
-	for (i = 0; i < numParts; ++i) {
-		nextPart = parts[i];
-		ptr = path_join_single(outBuffer, ptr, nextPart, 0);
+	nextPart = inBuffer;
+	do {
+		delimiter = strchr(nextPart, DEFERRED_JOIN_DELIMITER);
+		if (delimiter) {
+			*delimiter = '\0';
+		}
+		ptr = path_join_single(outBuffer, ptr, outBuffer + sizeof(outBuffer), nextPart, 0);
+		if (!ptr) {
+			return luaL_error(L, "path is too long");
+		}
+		nextPart = delimiter ? delimiter + 1 : NULL;
 	}
+	while (nextPart);
 
 	lua_pushstring(L, outBuffer);
 	return 1;

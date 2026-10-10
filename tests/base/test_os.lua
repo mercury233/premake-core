@@ -7,7 +7,16 @@
 	local suite = test.declare("base_os")
 
 	local cwd
+	local linkTestDir
 	local real_io_open = io.open
+
+	local function real_readfile(filepath)
+		local f = real_io_open(filepath, "rb")
+		test.isnotnil(f)
+		local content = f:read("*a")
+		f:close()
+		return content
+	end
 
 	local tmpname = function()
 		local p = os.tmpname()
@@ -38,6 +47,10 @@
 
 	function suite.teardown()
 		os.chdir(cwd)
+		if linkTestDir then
+			os.rmdir(linkTestDir)
+			linkTestDir = nil
+		end
 	end
 
 	local function create_mock_os_getenv(map)
@@ -188,6 +201,17 @@
 -- os.linkdir() and os.linkfile() tests
 --
 
+	local function prepare_symlink_parent_paths()
+		linkTestDir = tmpdir()
+		test.istrue(os.chdir(linkTestDir))
+		test.istrue(os.mkdir("target/child"))
+		test.istrue(os.mkdir("target/data"))
+		local f = assert(real_io_open("target/data/hello.txt", "wb"))
+		f:write("symlink target")
+		f:close()
+		test.istrue(os.linkdir(path.getabsolute("target/child"), "alias"))
+	end
+
 	function suite.linkdir()
 		test.istrue(os.linkdir("folder/subfolder", "folder/subfolder2"))
 		test.istrue(os.islink("folder/subfolder2"))
@@ -200,6 +224,51 @@
 		test.istrue(os.islink("folder/ok2.lua"))
 		test.istrue(os.remove("folder/ok2.lua"))
 		test.isfalse(os.islink("folder/ok2.lua"))
+	end
+
+	function suite.linkfile_preservesParentAfterSymlinkInSource()
+		if os.host() == "windows" then return end
+		prepare_symlink_parent_paths()
+		test.istrue(os.linkfile("alias/../data/hello.txt", "file-link"))
+		test.isequal("symlink target", real_readfile("file-link"))
+	end
+
+	function suite.linkdir_preservesParentAfterSymlinkInSource()
+		if os.host() == "windows" then return end
+		prepare_symlink_parent_paths()
+		test.istrue(os.linkdir("alias/../data", "dir-link"))
+		test.isequal("symlink target", real_readfile("dir-link/hello.txt"))
+	end
+
+	function suite.linkfile_preservesParentAfterSymlinkInDestination()
+		if os.host() == "windows" then return end
+		prepare_symlink_parent_paths()
+		test.istrue(os.linkfile("target/data/hello.txt", "alias/../file-link"))
+		test.istrue(os.islink("target/file-link"))
+		test.isequal("symlink target", real_readfile("target/file-link"))
+	end
+
+	function suite.linkdir_preservesParentAfterSymlinkInDestination()
+		if os.host() == "windows" then return end
+		prepare_symlink_parent_paths()
+		test.istrue(os.linkdir("target/data", "alias/../dir-link"))
+		test.istrue(os.islink("target/dir-link"))
+		test.isequal("symlink target", real_readfile("target/dir-link/hello.txt"))
+	end
+
+	function suite.links_allowMissingTargetAfterSymlinkParent()
+		if os.host() == "windows" then return end
+		prepare_symlink_parent_paths()
+		test.istrue(os.linkdir("alias/../future", "dir-link"))
+		test.istrue(os.linkfile("alias/../future/hello.txt", "file-link"))
+		test.istrue(os.islink("dir-link"))
+		test.istrue(os.islink("file-link"))
+		test.istrue(os.mkdir("target/future"))
+		local f = assert(real_io_open("target/future/hello.txt", "wb"))
+		f:write("created later")
+		f:close()
+		test.isequal("created later", real_readfile("dir-link/hello.txt"))
+		test.isequal("created later", real_readfile("file-link"))
 	end
 
 --
@@ -578,14 +647,6 @@
 
 	-- Save the real function before test runner installs its stub.
 	local real_writefile_ifnotequal = os.writefile_ifnotequal
-
-	local function real_readfile(filepath)
-		local f = real_io_open(filepath, "rb")
-		if not f then return nil end
-		local content = f:read("*a")
-		f:close()
-		return content
-	end
 
 --
 -- os.writefile_ifnotequal() tests.
