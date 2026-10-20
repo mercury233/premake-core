@@ -285,7 +285,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Start FreeBSD VM
-      uses: vmactions/freebsd-vm@v1.5.8
+      uses: vmactions/freebsd-vm@v1.5.9
       with:
         usesh: true
         sync: sshfs
@@ -324,7 +324,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Start OpenBSD VM
-      uses: vmactions/openbsd-vm@v1.4.7
+      uses: vmactions/openbsd-vm@v1.4.8
       with:
         usesh: true
         sync: sshfs
@@ -363,7 +363,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Build on NetBSD VM
-      uses: vmactions/netbsd-vm@v1.5.0
+      uses: vmactions/netbsd-vm@v1.5.2
       with:
         usesh: true
         prepare: |
@@ -396,7 +396,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Build on DragonflyBSD VM
-      uses: vmactions/dragonflybsd-vm@v1.3.3
+      uses: vmactions/dragonflybsd-vm@v1.3.4
       with:
         usesh: true
         prepare: |
@@ -427,7 +427,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Build on Solaris VM
-      uses: vmactions/solaris-vm@v1.4.0
+      uses: vmactions/solaris-vm@v1.4.1
       with:
         usesh: true
         cpu: 4
@@ -459,7 +459,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Build on OmniOS VM
-      uses: vmactions/omnios-vm@v1.3.6
+      uses: vmactions/omnios-vm@v1.3.7
       with:
         usesh: true
         prepare: |
