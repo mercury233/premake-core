@@ -107,6 +107,12 @@
 		pic = {
 			On = "-fPIC",
 		},
+		hardenstack = {
+			Off = "-fno-stack-protector",
+			On = "-fstack-protector",
+			Strong = "-fstack-protector-strong",
+			All = "-fstack-protector-all",
+		},
 		vectorextensions = {
 			AVX = "-mavx",
 			AVX2 = "-mavx2",
@@ -287,10 +293,6 @@
 			["gnu++2c"] = "-std=gnu++2c",
 			["gnu++26"] = "-std=gnu++26",
 			["C++latest"] = "-std=c++23",
-		},
-		buffersecuritycheck = {
-			Off = "-fno-stack-protector",
-			On = "-fstack-protector"
 		},
 		rtti = {
 			Off = "-fno-rtti"
@@ -622,7 +624,11 @@
 		},
 		linker = {
 			Default = "",
-			LLD = "-fuse-ld=lld"
+			BFD = "-fuse-ld=bfd",
+			Gold = "-fuse-ld=gold",
+			LLD = "-fuse-ld=lld",
+			Mold = "-fuse-ld=mold",
+			Wild = "-fuse-ld=wild"
 		},
 		mapfile = {
 			On = function(cfg)
